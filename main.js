@@ -24,15 +24,14 @@ var sqlite3 = require('sqlite3').verbose();
 var db = new sqlite3.cached.Database('tweets.sqlite');
 var querystring = require('querystring');
 var merge = require('merge');
-var weather = require('openweathermap')
-weather.defaults(WEATHER_CONFIG);
+var cachedweather = require('./CachedOpenWeatherAPI.js');
+    cachedweather.config(WEATHER_CONFIG, MANCHESTER_CITY_ID, db);
+    cachedweather.start(15);
 
 // Ensure the database is ready for use
 db.serialize(function() {
   db.run("CREATE TABLE IF NOT EXISTS seen_tweets (id INTEGER PRIMARY KEY, text TEXT, user_id INTEGER, action_taken TEXT)");
   db.run("CREATE TABLE IF NOT EXISTS sent_tweets (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, related_tweet_id INTEGER)");
-  db.run("CREATE TABLE IF NOT EXISTS daily_weather (timestamp INTEGER PRIMARY KEY, main TEXT, description TEXT, mapping TEXT, temp_min INTEGER, temp_max INTEGER, temp INTEGER)");
-  db.run("CREATE TABLE IF NOT EXISTS hourly_weather (timestamp INTEGER PRIMARY KEY, main TEXT, description TEXT, mapping TEXT, temp_min INTEGER, temp_max INTEGER, temp INTEGER)");
 });
 
 function selectWeatherTweets(params, callback) {
@@ -225,62 +224,7 @@ function updateTweetWithActionTaken(tweet, actionTaken) {
 // Main
 //updateTweets();
 //processNewTweet({text: 'what is the weather in Manchester in Liverpool today?', id: '123123123'});
-updateWeatherCache();
 
-var weatherCache = {now: {}, forecast: {}, daily: {}};
-function updateWeatherCache() {
-    // The 3 hours forecast is available for 5 days. Daily forecast is available for 14 days
-    weather.now({id: MANCHESTER_CITY_ID}, function(data) {      
-        weatherCache.now = weatherDataToWeatherObject(data);
-    });
-    
-    weather.forecast({id: MANCHESTER_CITY_ID}, function(reply) {
-        //console.log(reply);
-        reply.list.forEach(function(data) {
-            weatherCache.forecast[data.dt] = weatherDataToWeatherObject(data);
-        })
-    });
-
-    weather.daily({id: MANCHESTER_CITY_ID}, function(reply) {
-        reply.list.forEach(function(data) {
-            weatherCache.daily[data.dt] = weatherDataToWeatherObject(data);
-        })
-    });
-}
-
-function weatherDataToWeatherObject(data) {
-    // weather_type: snow, rain, hail, thunder, sunny, cloudy
-    var weathermapping = {
-        '01': 'clear',
-        '02': 'few clouds',
-        '03': 'scattered clouds',
-        '04': 'broken clouds',
-        '09': 'drizzle',
-        '10': 'rain',
-        '11': 'thunder',
-        '13': 'snow',
-        '50': 'mist'
-    }
-    
-    var weather = {};
-    
-    if(data.weather && data.weather[0]) {
-        weather.main = data.weather[0].main;
-        weather.description = data.weather[0].description;
-        
-        var iconID = data.weather[0].icon.substring(0,2);
-        weather.mapping = weathermapping[iconID];
-    }
-    
-    if(data.temp) {
-        weather.temp = data.temp.day;
-        weather.temp_min = data.temp.min;
-        weather.temp_max = data.temp.max;
-    } else if(data.main) {
-        weather.temp = data.main.temp;
-        weather.temp_min = data.main.temp_min;
-        weather.temp_max = data.main.temp_ma;
-    };
-
-    return weather;
-}
+cachedweather.getWeatherAt(Math.round(new Date().getTime()/1000), function(data) {
+    console.log(data);
+});
