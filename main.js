@@ -16,17 +16,16 @@ var WEATHER_CONFIG = {
 var MANCHESTER_CITY_ID = 2643123;
 
 // --- App ---
+var sqlite3 = require('sqlite3').verbose();
+var db = new sqlite3.cached.Database('tweets.sqlite');
+
 var twitterbot = require('./TwitterBot.js');
-    twitterbot.config(TWITTER_COFIG, DUMMY_TWITTER, WAIT_SECONDS);
+    twitterbot.config(TWITTER_COFIG, DUMMY_TWITTER, WAIT_SECONDS, db);
     twitterbot.start('weather OR sunny OR rain OR umbrella OR snow OR hail OR warm OR cold manchester OR mcr weekend OR today OR tomorrow -rt', processNewTweet);
     
 var https = require("https");
 
-var sqlite3 = require('sqlite3').verbose();
-var db = new sqlite3.cached.Database('tweets.sqlite');
-
 var querystring = require('querystring');
-var merge = require('merge');
 
 var cachedweather = require('./CachedOpenWeatherAPI.js');
     cachedweather.config(WEATHER_CONFIG, MANCHESTER_CITY_ID, db);
