@@ -47,7 +47,7 @@ function selectTweets(params, callback) {
 function updateTweets() { 
     console.log("Querying twitter for updates");
     DB.get("SELECT id FROM seen_tweets ORDER BY id DESC LIMIT 1", function(err, result) {
-        if(result) params = { 'since_id': result.id + 1 }
+        if(result) params = { 'since_id': (result.id + 1)  }
         else params = {}
             
         selectTweets(params, function(data) {
