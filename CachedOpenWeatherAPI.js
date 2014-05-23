@@ -2,6 +2,10 @@ var weather = require('openweathermap')
 var db = null;
 var city_id = 0;
 
+// http://api.openweathermap.org/data/2.5/forecast?id=2643123&mode=json&appid=
+// f3794e46bd7505e6a7746cb0379550ed
+// http://bugs.openweathermap.org/projects/api/wiki/Weather_Condition_Codes
+
 exports.config = function(weather_config, city, database) {
     weather.defaults(weather_config);
     db = database;
