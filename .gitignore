@@ -25,3 +25,5 @@ build/Release
 node_modules
 
 .nide
+
+tweets.sqlite
