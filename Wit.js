@@ -5,7 +5,7 @@ exports.query = function(text, callback) {
     var options = {
       hostname: 'api.wit.ai',
       port: 443,
-      path: '/message?'+querystring.stringify({'v': '20140523', 'q': text}),
+      path: '/message?'+querystring.stringify({'v': '20140524', 'q': text}),
       headers: {
           'Authorization': 'Bearer VPMJTZZA2OCCD4VY7PYOVE7WHCU62UCN',
           accept: '*/*'
