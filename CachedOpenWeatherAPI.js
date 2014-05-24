@@ -27,7 +27,7 @@ exports.start = function(update_minutes) {
     
     db.get("SELECT * FROM update_times ORDER BY timestamp DESC LIMIT 1", function(err, res) {
         if(res && (getTimestamp() - res.timestamp < (update_minutes * 60 * 1000 * 0.5))) 
-            console.log("Not updating as we have updated in the last "+update_minutes*0.5+" minutes.");
+            console.info("Not updating weather as we have updated in the last "+update_minutes*0.5+" minutes.");
         else
             updateWeatherCache();
     });
@@ -42,7 +42,7 @@ exports.getWeatherAt = function(timestamp, callback) {
         if(res && res.timestamp)
             oldestHourly = res.timestamp;
        
-        if(oldestHourly < timestamp)
+        if(oldestHourly >= timestamp)
             getHourlyWeather(timestamp, callback); 
         else
             getDailyWeather(timestamp, callback); 
@@ -57,14 +57,18 @@ exports.getDayWeatherAt = function(timestamp, callback) {
 function getHourlyWeather(timestamp, callback) {
     var hourly = db.prepare("SELECT * FROM hourly_weather WHERE timestamp <= $timestamp ORDER BY timestamp DESC LIMIT 1");
     hourly.get({$timestamp: timestamp}, function(err, res) {
-        callback(res);
+        if(err) 
+            console.warn("While searching hourly weather: ", err)
+        callback(res, timestamp);
     });
 }
 
 function getDailyWeather(timestamp, callback) {
     var daily = db.prepare("SELECT * FROM daily_weather WHERE timestamp <= $timestamp ORDER BY timestamp DESC LIMIT 1");
     daily.get({$timestamp: timestamp}, function(err, res) {
-        callback(res);
+        if(err) 
+            console.warn("While searching daily weather: ", err)
+        callback(res, timestamp);
     });
 }
 
@@ -74,7 +78,7 @@ function getTimestamp() {
 
 function updateWeatherCache() {
     var insert = db.prepare("INSERT INTO update_times VALUES ($timestamp)");
-    console.log("Updating the stored weather information");
+    console.info("Updating the stored weather information");
     
     // The 3 hours forecast is available for 5 days. Daily forecast is available for 14 days
     /*weather.now({id: MANCHESTER_CITY_ID}, function(data) {      
@@ -88,7 +92,7 @@ function updateWeatherCache() {
             insertHourly.run(weatherDataToWeatherObject(data));
         })
         insert.run({$timestamp: getTimestamp()});
-        console.log("Update of hourly weather complete");
+        console.info("Update of hourly weather complete");
     });
 
     var insertDaily = db.prepare("INSERT OR IGNORE INTO daily_weather (timestamp, main, description, mapping, temp_min, temp_max, temp)"
@@ -98,7 +102,7 @@ function updateWeatherCache() {
             insertDaily.run(weatherDataToWeatherObject(data));
         })
         insert.run({$timestamp: getTimestamp()});
-        console.log("Update of daily weather complete");
+        console.info("Update of daily weather complete");
     });
 }
 
