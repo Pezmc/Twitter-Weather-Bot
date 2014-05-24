@@ -35,7 +35,8 @@ var witparse = require("./WitWeatherParse.js");
     
 // --- Function ---
 function processNewTweet(tweet) {
-    wit.query(tweet.text, function(reply){
+    strippedTweet = stripTwitterURL(tweet.text); // need to remove URL's else wit gets confused
+    wit.query(strippedTweet, function(reply){
         witparse.processReply(reply, function(message, action) {
             if(message != false) {
               twitterbot.sendReply(tweet, message, function(tweet) {
@@ -47,6 +48,11 @@ function processNewTweet(tweet) {
         });
     });
 }
+
+function stripTwitterURL(tweet) {
+  return tweet.replace(/((https?\:\/\/)|(www\.))t\.co(\S+)(\w{2,4})?/gi, '');  
+}
+
 
 // --- Main ---
 cachedweather.start(30);
