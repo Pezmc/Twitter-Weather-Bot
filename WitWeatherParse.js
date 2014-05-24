@@ -9,6 +9,8 @@
 var WEATHER_API;
 var MIN_CONFIDENCE;
 
+var util = require('util');
+
 exports.config = function(min_confidence, weather_api) {
     WEATHER_API = weather_api;
     MIN_CONFIDENCE = min_confidence;
