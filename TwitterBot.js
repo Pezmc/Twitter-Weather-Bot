@@ -10,6 +10,16 @@ var QUERY = "";
 var TWEET_CALLBACK = null;
 var DB = null;
 
+var sql = [];
+sql['createSeenTweets'] = 'CREATE TABLE IF NOT EXISTS seen_tweets (id INTEGER PRIMARY KEY, text TEXT, user_id INTEGER, username TEXT, action_taken TEXT)';
+sql['createSentTweets'] = 'CREATE TABLE IF NOT EXISTS sent_tweets (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, related_tweet_id INTEGER)';
+
+sql['updateActionTaken'] = 'UPDATE seen_tweets SET action_taken = $action WHERE id = $id';
+sql['logSentTweet'] = 'INSERT INTO sent_tweets (text, related_tweet_id) VALUES ($text, $related_id)';
+sql['selectNewestTweet'] = 'SELECT id FROM seen_tweets ORDER BY id DESC LIMIT 1';
+sql['selectExistingTweet'] = "SELECT 1 as 'exist' FROM seen_tweets WHERE id = $tweet_id LIMIT 1";
+
+sql['insertSeenTweets'] = 'INSERT INTO seen_tweets (id, text, user_id, username) VALUES ($id, $text, $user_id, $username)';
 
 exports.config = function(config, wait_seconds, database) {
     twit = new twitter(config);
@@ -32,8 +42,8 @@ exports.start = function(query, tweet_callback, callback) {
     
     // Ensure the database is ready for use
     DB.serialize(function() {
-      DB.run("CREATE TABLE IF NOT EXISTS seen_tweets (id INTEGER PRIMARY KEY, text TEXT, user_id INTEGER, action_taken TEXT)");
-      DB.run("CREATE TABLE IF NOT EXISTS sent_tweets (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, related_tweet_id INTEGER)");
+      DB.run(sql['createSeenTweets']);
+      DB.run(sql['createSentTweets']);
     });
     
     console.info("Authentication is needed before bot can start.");
@@ -47,7 +57,7 @@ exports.start = function(query, tweet_callback, callback) {
 }
 
 exports.updateActionTaken = function(tweet, actionTaken) {
-    var update = DB.prepare('UPDATE seen_tweets SET action_taken = $action WHERE id = $id');
+    var update = DB.prepare(sql['updateActionTaken']);
     update.bind({$id: tweet.id});
     update.run();
 }
@@ -118,7 +128,7 @@ function logSentTweet(tweet, params) {
     if(typeof params === 'undefined')
       params = {};
       
-    var insert = DB.prepare("INSERT INTO sent_tweets (text, related_tweet_id) VALUES ($text, $related_id)");
+    var insert = DB.prepare(sql['logSentTweet']);
     insert.run({ $text: tweet.text, $related_id: params.in_reply_to_status_id });
     console.log("Tweet sent successfully" + (DUMMY_TWEET ? " (Mock)" : ""));  
 }
@@ -139,7 +149,7 @@ function selectTweets(params, callback) {
 
 function updateTweets() { 
     console.log("Querying twitter for updates");
-    DB.get("SELECT id FROM seen_tweets ORDER BY id DESC LIMIT 1", function(err, result) {
+    DB.get(sql['selectNewestTweet'], function(err, result) {
         if(result) params = { 'since_id': (result.id + 1)  }
         else params = {}
             
@@ -165,12 +175,16 @@ function updateTweets() {
 }
 
 function seenTweet(tweet) {
-    //var statement = db.prepare("INSERT OR IGNORE INTO seen_tweets (id, text, user_id) VALUES ($id, $text, $user_id)");
-    var select = DB.prepare("SELECT 1 as 'exist' FROM seen_tweets WHERE id = $tweet_id LIMIT 1");
+    var select = DB.prepare(sql['selectExistingTweet']);
     select.get({$tweet_id: tweet.id}, function(err, row) {
         if(!row) { // If the result set is empty, the second parameter is undefined
-            var insert = DB.prepare("INSERT INTO seen_tweets (id, text, user_id) VALUES ($id, $text, $user_id)");
-            insert.run({$id: tweet.id, $text: tweet.text, $user_id: tweet.user.id}); 
+            var insert = DB.prepare(sql['insertSeenTweet']);
+            insert.run({
+              $id: tweet.id,
+              $text: tweet.text,
+              $user_id: tweet.user.id,
+              $username: tweet.user.screen_name
+            }); 
             TWEET_CALLBACK(tweet);
             console.info("Logged", tweet.text, tweet.created_at);
         } else {
@@ -180,7 +194,7 @@ function seenTweet(tweet) {
 }
 
 function updateComplete() {
-    console.log("\n"+'Update complete, waiting '+WAIT_SECONDS+' seconds before the next update');
+    console.info("\n"+'Update complete, waiting '+WAIT_SECONDS+' seconds before the next update');
     countdown(WAIT_SECONDS, updateTweets, "seconds until next search...");
 }
 
