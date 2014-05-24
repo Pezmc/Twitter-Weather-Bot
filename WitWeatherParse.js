@@ -98,6 +98,8 @@ function WeatherIntent(witReply) {
         return timePeriod;
     }
     
+    this.timePeriod = {};
+    
     this.timePeriod.getFromUnix = function() {
         return this.getTimePeriod().from.getTime() / 1000;    
     }
@@ -249,6 +251,7 @@ function getWeatherTypeString(type, weather, periodName) {
 }
 
 function getWeatherTemperatureString(temperature, weather, periodName) {
+
     // weather_temperature: very cold, cold, neutral, warm, very warm
     if(temperature !== false) {
         if(weather.temp < 5)
