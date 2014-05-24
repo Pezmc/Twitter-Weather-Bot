@@ -11,6 +11,13 @@ var MIN_CONFIDENCE;
 
 var util = require('util');
 
+var INTENT = { 
+  OTHER: "weather_other",
+  QUERY: "weather_query",
+  STATEMENT: "weather_statement",
+  TIME_QUERY: "weather_time_query"
+}
+
 exports.config = function(min_confidence, weather_api) {
     WEATHER_API = weather_api;
     MIN_CONFIDENCE = min_confidence;
@@ -19,16 +26,20 @@ exports.config = function(min_confidence, weather_api) {
 exports.processReply = function(reply, callback) {
     if(reply.outcome.confidence < MIN_CONFIDENCE) {
         callback(false, "Ignored as confidence ("+reply.outcome.confidence+") was below "+MIN_CONFIDENCE+".");
+        
     } else {
-        switch(reply.outcome.intent) {
-            case 'weather_other':
+        var weatherIntent = new WeatherIntent(reply);
+        
+        switch(intent.getIntentType()) {
+            case INTENT.OTHER:
                 callback(false, "Ignored as wit was unsure of type");
                 console.info("Treated as other and ignored");
                 break;
-            case 'weather_query':
-                processWeatherQuery(reply, callback);
+            case INTENT.QUERY:
+            case INTENT.TIME_QUERY:
+                processWeatherQuery(weatherIntent, callback);
                 break;
-            case 'weather_statement':
+            case INTENT.STATEMENT:
                 callback(false, "Would have attempted to parse statement");
                 console.info("Would have attempted ot treat as a statement.");
                 break;
@@ -39,57 +50,117 @@ exports.processReply = function(reply, callback) {
     }
 }
 
-function processWeatherQuery(reply, callback) {
-    var entities = reply.outcome.entities;
+function WeatherIntent(witReply) {
+    var witReply = witReply;
+    var entities = witReply.entities;
     
-    console.info(util.format('Processing weather query from @%s "%s"', reply.user.screen_name, reply.msg_body));
-  
-    var isManchester = false;
-    if(entities.location) {
-        if(Array.isArray(entities.location)) {
-            entities.location.forEach(function(value) {
-                if(value.value.toLowerCase().indexOf('manchester') > -1)
-                    isManchester = true;
-            });
-        } else {
-            if(entities.location.value.toLowerCase().indexOf('manchester') > -1)
-                isManchester = true;
-        }
+    this.getIntentType = function() {
+        return this.witReply.outcome.intent
     }
     
-    var timePeriod = { from: new Date(), to: new Date(), name: 'today' }
-    timePeriod.to.setHours(timePeriod.to.getHours()+3); // dates in the past have unknown weather
-    if(entities.datetime) {
-        if(Array.isArray(entities.datetime)) {
-            // @todo Prefer today, avoid in the past, select one after today if exists
-            //entities.datetime.forEach(function(value) {
-            timePeriod.from = entities.datetime[0].value.from;
-            timePeriod.to = entities.datetime[0].value.to;
-            timePeriod.name = entities.datetime[0].body;
-            //}
-        } else {
-            timePeriod.from = entities.datetime.value.from;
-            timePeriod.to = entities.datetime.value.to;
-            timePeriod.name = entities.datetime.body;
+    this.getIsManchester = function() {
+        var isManchester = false;
+        
+        if(entities.location) {
+          if(Array.isArray(entities.location)) {
+              entities.location.forEach(function(value) {
+                  if(value.value.toLowerCase().indexOf('manchester') > -1)
+                      isManchester = true;
+              });
+          } else {
+              if(entities.location.value.toLowerCase().indexOf('manchester') > -1)
+                  isManchester = true;
+          }
         }
+        
+        return isManchester;
     }
+    
+    this.getTimePeriod = function() {
+        var timePeriod = { from: new Date(), to: new Date(), name: 'today' }
+        timePeriod.to.setHours(timePeriod.to.getHours()+3); // dates in the past have unknown weather
+        
+        if(entities.datetime) {
+            if(Array.isArray(entities.datetime)) {
+                // @todo Prefer today, avoid in the past, select one after today if exists
+                //entities.datetime.forEach(function(value) {
+                timePeriod.from = entities.datetime[0].value.from;
+                timePeriod.to = entities.datetime[0].value.to;
+                timePeriod.name = entities.datetime[0].body;
+                //}
+            } else {
+                timePeriod.from = entities.datetime.value.from;
+                timePeriod.to = entities.datetime.value.to;
+                timePeriod.name = entities.datetime.body;
+            }
+        }
+        
+        return timePeriod;
+    }
+    
+    this.timePeriod.getFromUnix = function() {
+        return this.getTimePeriod().from.getTime() / 1000;    
+    }
+    
+    this.timePeriod.getToUnix = function() {
+        return this.getTimePeriod().to.getTime() / 1000; 
+    }
+    
+    this.timePeriod.getAverageUnix = function() {
+        return Math.round((this.timePeriod.getFromUnix() +
+                           this.timePeriod.getToUnix()) / 2);
+    }
+    
+    this.getWeatherType = function() {
+        var weatherType = false;
+        
+        if(entities.weather_type) {
+           weatherType = entities.weather_type.value;
+        }     
+         
+        return weatherType;
+    }
+    
+    this.getWeatherTemperature = function() {
+        var weatherTemperature = false;
+        
+        if(entities.weather_temperature) {
+           weatherTemperature = entities.weather_temperature.value;
+        }   
+        
+        return  weatherTemperature;  
+    }
+}
+
+function processIntent(intent, callback) {  
+    console.info(util.format('Processing weather query from @%s "%s"', reply.user.screen_name, reply.msg_body))
     
     // weather_type: snow, rain, hail, thunder, sunny, cloudy
-    var weatherType = false;
-    if(entities.weather_type) {
-       weatherType = entities.weather_type.value;
-    }
-    
     // weather_temperature: very cold, cold, neutral, warm, very warm
-    var weatherTemperature = false;
-    if(entities.weather_temperature) {
-       weatherTemperature = entities.weather_temperature.value;
-    }
     
-    // get the weather for that date
-    var from = new Date(timePeriod.from).getTime()/1000;
-    var to = new Date(timePeriod.to).getTime()/1000;
-    var averageDate = Math.round((from + to)/2);
+    switch(intent.getIntentType()) {
+        case INTENT.QUERY: processWeatherQuery(intent, callback); break;
+        case INTENT.STATEMENT: processWeatherStatement(intent, callback); break;
+        case INTENT.TIME_QUERY: processWeatherTimeQuery(intent, callback); break;
+        default:
+            callback(false, "Ignored as '"+reply.outcome.intent+"' is not a known type");
+    }
+}
+
+function processWeatherTimeQuery(intent, callback) {
+    console.error("Not implemented yet!");
+}
+
+function processWeatherStatement(intent, callback) {
+    console.error("Not implemented yet!");
+};
+
+function processWeatherQuery(intent, callback) {  
+    
+    var averageDate = intent.timePeriod.getAverageUnix();
+    var weatherType = intent.getWeatherType();
+    var weatherTemperature = intent.getWeatherTemperature();
+    var timePeriod = intent.getTimePeriod();
     
     WEATHER_API.getWeatherAt(averageDate, function(weather, queriedTimestamp) {
      
@@ -121,8 +192,7 @@ function processWeatherQuery(reply, callback) {
         else
           tweet += weatherString; 
         
-        callback(tweet);
-          
+        callback(tweet);          
     });
 }
 
