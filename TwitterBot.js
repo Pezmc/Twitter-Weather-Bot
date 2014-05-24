@@ -10,17 +10,23 @@ var QUERY = "";
 var TWEET_CALLBACK = null;
 var DB = null;
 
+// --- SQL ---
 var sql = [];
-sql['createSeenTweets'] = 'CREATE TABLE IF NOT EXISTS seen_tweets (id INTEGER PRIMARY KEY, text TEXT, user_id INTEGER, username TEXT, action_taken TEXT)';
-sql['createSentTweets'] = 'CREATE TABLE IF NOT EXISTS sent_tweets (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, related_tweet_id INTEGER)';
+sql['createSeenTweets'] = 'CREATE TABLE IF NOT EXISTS seen_tweets ' +
+                          '(id INTEGER PRIMARY KEY, text TEXT, user_id INTEGER, username TEXT, action_taken TEXT)';
+sql['createSentTweets'] = 'CREATE TABLE IF NOT EXISTS sent_tweets ' +
+                          '(id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, related_tweet_id INTEGER)';
 
-sql['updateActionTaken'] = 'UPDATE seen_tweets SET action_taken = $action WHERE id = $id';
-sql['logSentTweet'] = 'INSERT INTO sent_tweets (text, related_tweet_id) VALUES ($text, $related_id)';
-sql['selectNewestTweet'] = 'SELECT id FROM seen_tweets ORDER BY id DESC LIMIT 1';
+sql['selectNewestTweet'] =   'SELECT id FROM seen_tweets ORDER BY id DESC LIMIT 1';
 sql['selectExistingTweet'] = "SELECT 1 as 'exist' FROM seen_tweets WHERE id = $tweet_id LIMIT 1";
 
-sql['insertSeenTweets'] = 'INSERT INTO seen_tweets (id, text, user_id, username) VALUES ($id, $text, $user_id, $username)';
+sql['updateActionTaken'] = 'UPDATE seen_tweets SET action_taken = $action WHERE id = $id';
 
+sql['insertSeenTweet'] = 'INSERT INTO seen_tweets (id, text, user_id, username) ' + 
+                         'VALUES ($id, $text, $user_id, $username)';
+sql['logSentTweet'] =    'INSERT INTO sent_tweets (text, related_tweet_id) VALUES ($text, $related_id)';
+
+// --- public
 exports.config = function(config, wait_seconds, database) {
     twit = new twitter(config);
     WAIT_SECONDS = wait_seconds;
@@ -60,23 +66,6 @@ exports.updateActionTaken = function(tweet, actionTaken) {
     var update = DB.prepare(sql['updateActionTaken']);
     update.bind({$id: tweet.id});
     update.run();
-}
-
-function requireAuthentication(callback) {
-    var express = require('express');
-    var app = express();
-    var server;
-    
-    app.get('/', twit.gatekeeper('/login'), function(req, res){
-      res.send('Authentification successfull');
-      console.log("Auth complete, closing authentication server.");
-      server.close();
-      callback();
-    });
-    app.get('/twauth', twit.login());
-    
-    console.log('Listening on 1200 for auth requests to Twitter');
-    server = app.listen(1200);
 }
 
 /*exports.sleepUntilAuthComplete = function(callback) {
@@ -122,6 +111,24 @@ exports.sendReply = function(reply_to, message, callback) {
       });
     }
       
+}
+
+// --- private
+function requireAuthentication(callback) {
+    var express = require('express');
+    var app = express();
+    var server;
+    
+    app.get('/', twit.gatekeeper('/login'), function(req, res){
+      res.send('Authentification successfull');
+      console.log("Auth complete, closing authentication server.");
+      server.close();
+      callback();
+    });
+    app.get('/twauth', twit.login());
+    
+    console.log('Listening on 1200 for auth requests to Twitter');
+    server = app.listen(1200);
 }
 
 function logSentTweet(tweet, params) {
