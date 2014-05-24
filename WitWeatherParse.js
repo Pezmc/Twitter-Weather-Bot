@@ -16,21 +16,23 @@ exports.config = function(min_confidence, weather_api) {
 
 exports.processReply = function(reply, callback) {
     if(reply.outcome.confidence < MIN_CONFIDENCE) {
-        updateTweetWithActionTaken(tweet, "Ignored as confidence ("+reply.outcome.confidence+") was below "+MIN_CONFIDENCE+".");
+        callback(false, "Ignored as confidence ("+reply.outcome.confidence+") was below "+MIN_CONFIDENCE+".");
     } else {
         switch(reply.outcome.intent) {
             case 'weather_other':
-                callback("Ignored as wit was unsure of type");
+                callback(false, "Ignored as wit was unsure of type");
+                console.info("Treated as other and ignored");
                 break;
             case 'weather_query':
                 processWeatherQuery(reply, callback);
                 break;
             case 'weather_statement':
-                callback("Would have attempted to parse statement");
+                callback(false, "Would have attempted to parse statement");
+                console.info("Would have attempted ot treat as a statement.");
                 break;
             default:
-                console.warn("Unknown Wit intent type: '"+reply.outcome.intent+"'")
-                callback("Ignored as '"+reply.outcome.intent+"' is not a known type");
+                console.warn("Unknown Wit intent type: '"+reply.outcome.intent+"'");
+                callback(false, "Ignored as '"+reply.outcome.intent+"' is not a known type");
         }
     }
 }
@@ -54,6 +56,7 @@ function processWeatherQuery(reply, callback) {
     }
     
     var timePeriod = { from: new Date(), to: new Date(), name: 'today' }
+    timePeriod.to.setHours(timePeriod.to.getHours()+3); // dates in the past have unknown weather
     if(entities.datetime) {
         if(Array.isArray(entities.datetime)) {
             //entities.datetime.forEach(function(value) {
@@ -83,25 +86,41 @@ function processWeatherQuery(reply, callback) {
     // get the weather for that date
     var from = new Date(timePeriod.from).getTime()/1000;
     var to = new Date(timePeriod.to).getTime()/1000;
-    var averageDate = Math.round(from + to)/2;
+    var averageDate = Math.round((from + to)/2);
     
-    WEATHER_API.getWeatherAt(averageDate, function(weather) {
-      
+    WEATHER_API.getWeatherAt(averageDate, function(weather, queriedTimestamp) {
+     
+        if(typeof weather === 'undefined') {
+          console.error('Unable to get weather at ' + queriedTimestamp, weather);
+          return;  
+        }
+          
         var weatherTypeString = getWeatherTypeString(weatherType, weather, timePeriod.name);
         var weatherTemperatureString = getWeatherTemperatureString(weatherTemperature, weather, timePeriod.name);      
         
-        var weatherString = "The forecast is "+weather.description+" at "+Math.round(weather.temp)+" degrees.";
+        var weatherString = capitaliseFirstLetter(weather.description);
+        
+        if(weather.temp_min != weather.temp_max) 
+          weatherString += " with highs of "+Math.round(weather.temp_max)+"\u2103 and lows of "+Math.round(weather.temp_min)+"\u2103.";
+        else
+          weatherString += " with an average of "+weather.temp+"\u2103."
+        
+        var tweet = "";
         
         if(weatherTypeString)
-          console.log(weatherTypeString);
+          tweet += weatherTypeString + " ";
         else if(weatherTemperatureString)
-          console.log(weatherTemperatureString);
+          tweet += weatherTemperatureString + " ";
           
-        console.log(weatherString);
+        // Avoid short tweets, add extra detail!  
+        if(!weatherTypeString && !weatherTemperatureString)
+          tweet = "The forecast for "+timePeriod.name+" is: " + weatherString;
+        else
+          tweet += weatherString; 
+        
+        callback(tweet);
           
     });
-    
-    callback("Would have attempted to parse query");
 }
 
 function getWeatherTypeString(type, weather, periodName) {
@@ -109,12 +128,12 @@ function getWeatherTypeString(type, weather, periodName) {
     // weather_type: snow, rain, hail, thunder, sunny, cloudy
     // weather API: 'clear x', 'few clouds x', 'scattered clouds x', 'broken clouds x', 'drizzle x', 'rain x', 'thunder x', 'snow x', 'mist'
     
-    if(type) {      
+    if(type && weather.mapping) {      
         if(type == 'snow')
            if(weather.mapping == 'snow')
                return ("Yes! It looks like it is going to snow " + periodName + "!");
            else
-               return ("No, it's not going snow " + periodName + ".");
+               return ("No, it's not going to snow " + periodName + ".");
                
         else if(type == 'rain')
            if(weather.mapping == 'rain')
@@ -153,7 +172,7 @@ function getWeatherTypeString(type, weather, periodName) {
                return ("There's no cloud forecast " + periodName + ".");
     }
     
-    return "";
+    return;
 }
 
 function getWeatherTemperatureString(temperature, weather, periodName) {
@@ -161,32 +180,39 @@ function getWeatherTemperatureString(temperature, weather, periodName) {
     if(temperature !== false) {
         if(weather.temp < 5)
             if(temperature == 'very cold')
-                console.log("Yes, it's going to be very cold " + periodName + ".");
+                return ("Yes, it's going to be very cold " + periodName + ".");
             else
-                console.log("Luckily it's going to be "+Math.round(weather.temp)+" " + periodName + ", so not too cold!");
+                return ("Luckily it's going to be "+Math.round(weather.temp)+" " + periodName + ", so not too cold!");
                 
         else if(weather.temp < 10)
             if(temperature == 'cold')
-                console.log("It looks like it's going to be cold " + periodName + ".");
+                return ("It looks like it's going to be cold " + periodName + ".");
             else
-                console.log("It's going to be "+Math.round(weather.temp)+" degrees " + periodName + ".");
+                return ("It's going to be "+Math.round(weather.temp)+" degrees " + periodName + ".");
             
         else if(weather.temp < 15)
             if(temperature == 'neutral')
-                console.log("It's going to be an average temperature " + periodName + ".");
+                return ("It's going to be an average temperature " + periodName + ".");
             else
-                console.log("It's going to be warmer than usual " + periodName + ".");
+                return ("No, it's going to be average " + periodName + ".");
             
         else if(weather.temp < 20)
             if(temperature == 'warm')
-                console.log("It should be warmer than usual " + periodName + ".");
+                return ("It should be warmer than usual " + periodName + ".");
             else
-                console.log("It's going to be warmer than usual " + periodName + ".");
+                return ("It's going to be warmer than usual " + periodName + ".");
             
-        else if(weather.temp >= 25)
+        else if(weather.temp >= 20)
             if(temperature == 'very warm')
-                console.log("Yes, it should be very warm " + periodName + ".");
+                return ("Yes, it should be very warm " + periodName + ".");
             else
-                console.log("No, it's going to be very warm " + periodName + ".");
+                return ("No, it's going to be very warm " + periodName + ".");
     }
+    
+    return;
+}
+
+function capitaliseFirstLetter(string)
+{
+    return string.charAt(0).toUpperCase() + string.slice(1);
 }
