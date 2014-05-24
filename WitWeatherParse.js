@@ -59,6 +59,7 @@ function processWeatherQuery(reply, callback) {
     timePeriod.to.setHours(timePeriod.to.getHours()+3); // dates in the past have unknown weather
     if(entities.datetime) {
         if(Array.isArray(entities.datetime)) {
+            // @todo Prefer today, avoid in the past, select one after today if exists
             //entities.datetime.forEach(function(value) {
             timePeriod.from = entities.datetime[0].value.from;
             timePeriod.to = entities.datetime[0].value.to;
