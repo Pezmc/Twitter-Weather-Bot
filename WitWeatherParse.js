@@ -40,7 +40,7 @@ exports.processReply = function(reply, callback) {
 function processWeatherQuery(reply, callback) {
     var entities = reply.outcome.entities;
     
-    console.info('Processing weather query "'+reply.msg_body+'"');
+    console.info(util.format('Processing weather query from @%s "%s"', reply.user.screen_name, reply.msg_body));
   
     var isManchester = false;
     if(entities.location) {
