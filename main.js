@@ -16,6 +16,7 @@ var WEATHER_CONFIG = {
 }
 var MANCHESTER_CITY_ID = 2643123;
 var TWITTER_QUERY = 'weather OR sunny OR rain OR umbrella OR snow OR hail OR warm OR cold OR brolly OR boiling manchester OR #mcr weekend OR today OR tomorrow OR week -rt -from:MENnews -from:metoffice -from:ChadWeather -from:MyWeather_MAN';
+var TWITTER_QUERY = 'weather OR sunny OR rain OR umbrella OR snow OR hail OR warm OR cold OR brolly OR boiling manchester OR #mcr OR mcrweather weekend OR today OR tomorrow OR week -rt -from:MENnews -from:metoffice -from:ChadWeather -from:MyWeather_MAN -from:weathermcr';
 
 // --- App ---
 var sqlite3 = require('sqlite3').verbose();
