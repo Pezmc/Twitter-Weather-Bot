@@ -17,7 +17,10 @@ sql['createSeenTweets'] = 'CREATE TABLE IF NOT EXISTS seen_tweets ' +
                           ' username TEXT, action_taken TEXT, streamed BOOLEAN)';
 sql['createSentTweets'] = 'CREATE TABLE IF NOT EXISTS sent_tweets ' +
                           '(id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, related_tweet_id INTEGER)';
+sql['createAPILogin'] =   'CREATE TABLE IF NOT EXISTS api_login ' +
+                          '(id INTEGER PRIMARY KEY AUTOINCREMENT, access_token_key TEXT, access_token_secret TEXT)';
 
+sql['selectNewestAPI'] =     'SELECT * FROM api_login ORDER BY id DESC LIMIT 1';                        
 sql['selectNewestTweet'] =   'SELECT id FROM seen_tweets WHERE streamed = 0 ORDER BY id DESC LIMIT 1';
 sql['selectExistingTweet'] = "SELECT 1 as 'exist' FROM seen_tweets WHERE id = $tweet_id LIMIT 1";
 
@@ -26,6 +29,7 @@ sql['updateActionTaken'] = 'UPDATE seen_tweets SET action_taken = $action WHERE 
 sql['insertSeenTweet'] = 'INSERT INTO seen_tweets (id, text, user_id, username, streamed) ' + 
                          'VALUES ($id, $text, $user_id, $username, $streamed)';
 sql['logSentTweet'] =    'INSERT INTO sent_tweets (text, related_tweet_id) VALUES ($text, $related_id)';
+sql['insertAPILogin'] =  'INSERT INTO api_login (access_token_key, access_token_secret) VALUES ($key, $secret)';
 
 // --- public
 exports.config = function(config, wait_seconds, database) {
@@ -51,16 +55,33 @@ exports.start = function(query, tweet_callback, callback) {
     DB.serialize(function() {
       DB.run(sql['createSeenTweets']);
       DB.run(sql['createSentTweets']);
+      DB.run(sql['createAPILogin']);
     });
+        
+    DB.get(sql['selectNewestAPI'], function(err, result) {
     
-    console.info("Authentication is needed before bot can start.");
-    requireAuthentication(function() {
-      updateTweets();
-      callback();
+      if(result) { 
+          console.info("Using stored authentication");
+          params = { 'since_id': (result.id - 1500) } // for some reason this needs to be done...
+          
+          twit.options.access_token_key = result.access_token_key;
+          twit.options.access_token_secret = result.access_token_secret;
+          
+          start(callback);
+      } else {
+          console.info("Authentication is needed before bot can start.");
+          requireAuthentication(function() {
+              //reusable API access
+              var insert = DB.prepare(sql['insertAPILogin']);
+              insert.run({ $key: twit.options.access_token_key, $secret: twit.options.access_token_secret });
+          
+              start(callback);
+          });
+          
+          
+      }
+      
     });
-
-    //exports.sleepUntilAuthComplete(function() {
-    //});
 }
 
 exports.updateActionTaken = function(tweet, actionTaken) {
@@ -115,6 +136,13 @@ exports.sendReply = function(reply_to, message, callback) {
 }
 
 // --- private
+function start(callback) {    
+    updateTweets();
+    streamWeatherTweets();
+    streamUserReplies();
+    callback();  
+}
+
 function requireAuthentication(callback) {
     var express = require('express');
     var app = express();
