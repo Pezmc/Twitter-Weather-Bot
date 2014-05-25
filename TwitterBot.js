@@ -2,6 +2,7 @@ var util = require('util'),
     twitter = require('twitter');
 var twit;
 var merge = require('merge');
+var fs = require('fs')
 
 var DUMMY_SEARCH = false;
 var DUMMY_TWEET = false;
@@ -263,7 +264,10 @@ function streamWeatherTweets() {
               console.info("Matched streamed weather tweet @", data.user.screen_name, " ", data.text);
               seenTweet(data, true);  
             } else {
-              //console.log("Ignored: @", data.user.screen_name, " ", data.text);
+              fs.appendFile('ignoredTweets.txt', data.user.screen_name
+                                                  + ":\t"
+                                                  + data.text.replace(/(\r\n|\n|\r)/gm," \\ ")
+                                                  + "\n");
             }
               
         });

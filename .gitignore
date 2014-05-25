@@ -27,3 +27,5 @@ node_modules
 .nide
 
 tweets.sqlite
+
+ignoredTweets.txt
