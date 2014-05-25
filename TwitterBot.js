@@ -254,15 +254,18 @@ function streamTweets(type, params, dataCallback, reconnectSleepSeconds) {
 }
 
 // Twitter side
-var weather_keywords = ['weather', 'forecast', 'sunny', ' rain', 'sunshine',
-                        'umbrella', 'snow', 'hail', ' warm', 'cold', 'brolly', 'boiling'];
+var weather_keywords = ['weather', 'forecast', 'sunny', ' rain', 'sunshine', 'thunder', 'lightning',
+                        'umbrella', ' snow', 'hail', ' warm', 'cold', 'brolly', 'boiling',
+                        '#snow', '#rain', '#hail', '#sun', '#thunder'];
 
 // Local
 var ignored_users = ['galgateweather', 'mennewsdesk', 'metoffice', 'chadWeather', 'myweather_man',
-                     'uk_storms', 'wx_manchester', 'widdop_weather', 'weather', TWITTER_ACCOUNT_NAME];
+                     'uk_storms', 'wx_manchester', 'widdop_weather', 'weather', TWITTER_ACCOUNT_NAME,
+                     'LordChapman'];
 
 var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'weatherspoons',
-                        'manchester, nh', '@virgintrains', 'train'];
+                        'manchester, nh', 'train', '@MetOffice', '@coldplay', 'Cold cave'];
+                        
 
 // Get tweets about the weather
 function streamWeatherTweets() {
