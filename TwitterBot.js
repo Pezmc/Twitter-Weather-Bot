@@ -205,7 +205,17 @@ function updateTweets() {
                     
                 for(i=0;i<count;i++) {
                     var tweet = data.statuses[i];
-                    seenTweet(tweet);
+                    
+                    if(isWeatherTweet(data)) {
+                        seenTweet(tweet);
+                    } else {
+                        fs.appendFile('ignoredTweets.txt', data.user.screen_name
+                                       + ":\t"
+                                       + data.text.replace(/(\r\n|\n|\r)/gm," \\\ ")
+                                       + "\n");
+                    }
+                    
+
                 }
             }
             
