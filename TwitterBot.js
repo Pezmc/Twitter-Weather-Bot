@@ -104,7 +104,9 @@ exports.updateActionTaken = function(tweet, actionTaken) {
     }
 }*/
 
-exports.sendReply = function(reply_to, message, callback) {
+exports.sendReply = function(reply_to, message, callback, disable_dummy_tweet) {
+    if(typeof disable_dummy_tweet === 'undefined')
+        disable_dummy_tweet = false;
 
     // Must include @ for reply, else twitter rejects it
     if(reply_to.user.screen_name)
@@ -120,7 +122,7 @@ exports.sendReply = function(reply_to, message, callback) {
 
     console.log("Attempting to send", message);
    
-    if(DUMMY_TWEET) {
+    if(DUMMY_TWEET && !disable_dummy_tweet) {
       var dummy = { text: message };
       logSentTweet(dummy, params);
       callback(dummy);

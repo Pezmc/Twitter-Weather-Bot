@@ -41,7 +41,7 @@ function processNewTweet(tweet, mention) {
             if(message != false) {
               twitterbot.sendReply(tweet, message, function(tweet) {
                 // callback on reply
-              });
+              }, message);
               action = "Sent tweet";
             }
             twitterbot.updateActionTaken(tweet, action);
