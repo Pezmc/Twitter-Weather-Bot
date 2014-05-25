@@ -1,7 +1,9 @@
 // --- Config ---
 var WAIT_SECONDS = 60;
-var DUMMY_TWITTER_SEARCH = false; // disable search
-var DUMMY_TWITTER_TWEET = true; // disable search
+var DUMMY_TWITTER_SEARCH = false;
+var DUMMY_TWITTER_TWEET = true;
+var DUMMY_TWITTER_MENTION_TWEET = false;
+
 var TWITTER_COFIG = {
     consumer_key: 'dXtdhPDWxm8xVq8Z3otvb1Dv6',
     consumer_secret: 'fshKYIXBTCQz6HkVJ7DqG00LD1ZsoN4syyNXLbZqrF8nvj1mPU',
@@ -41,11 +43,11 @@ function processNewTweet(tweet, mention) {
             if(message != false) {
               twitterbot.sendReply(tweet, message, function(tweet) {
                 // callback on reply
-              }, message);
+              }, mention);
               action = "Sent tweet";
             }
             twitterbot.updateActionTaken(tweet, action);
-        }, mention);
+        }, mention && !DUMMY_TWITTER_MENTION_TWEET);
     });
 }
 

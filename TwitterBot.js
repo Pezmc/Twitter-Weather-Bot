@@ -129,7 +129,7 @@ exports.sendReply = function(reply_to, message, callback, disable_dummy_tweet) {
     } else {
       twit.updateStatus(message, params, function(reply) {
           if(reply.id) {
-            logSentTweet(reply);
+            logSentTweet(reply, null, false);
             callback(reply);
           } else {
             console.error("Error sending tweet", reply);
@@ -164,13 +164,16 @@ function requireAuthentication(callback) {
     server = app.listen(1200);
 }
 
-function logSentTweet(tweet, params) {
+function logSentTweet(tweet, params, real) {
     if(typeof params === 'undefined')
       params = {};
       
+    if(typeof real === 'undefined')
+      real = true;
+      
     var insert = DB.prepare(sql['logSentTweet']);
     insert.run({ $text: tweet.text, $related_id: params.in_reply_to_status_id });
-    console.log("Tweet sent successfully" + (DUMMY_TWEET ? " (Mock)" : ""));  
+    console.log("Tweet sent successfully" + (!real ? " (Mock)" : ""));  
 }
 
 function selectTweets(params, callback) {
