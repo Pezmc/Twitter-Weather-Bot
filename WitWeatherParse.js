@@ -55,27 +55,26 @@ exports.processReply = function(reply, callback, mention) {
             
             var start = replyIntro[Math.floor(Math.random() * replyIntro.length)];
             var end = replyEnd[Math.floor(Math.random() * replyEnd.length)];
-            console.warn("Wit didn't understand mention '"+ reply.msg_body +"'")
+            console.warn("Wit didn't understand mention '" + reply.msg_body + "'")
             callback(reply + ". " + end);
             return;
         } 
         
         switch(weatherIntent.getIntentType()) {
             case INTENT.OTHER:
-                callback(false, "Ignored as wit was unsure of type");
-                console.info("Treated as other and ignored");
+                callback(false, "Ignored as Wit marked as '" + INTENT.OTHER + "'");
+                console.info("Identified as other and ignored");
                 break;
             case INTENT.QUERY:
             case INTENT.TIME_QUERY:
                 processWeatherQuery(weatherIntent, callback);
                 break;
             case INTENT.STATEMENT:
-                callback(false, "Would have attempted to parse statement");
-                console.info("Would have attempted ot treat as a statement.");
+                processWeatherQuery(weatherIntent, callback);
                 break;
             default:
-                console.warn("Unknown Wit intent type: '"+reply.outcome.intent+"'");
-                callback(false, "Ignored as '"+reply.outcome.intent+"' is not a known type");
+                console.warn("Unknown Wit intent type: '" + reply.outcome.intent + "'");
+                callback(false, "Ignored as '" + reply.outcome.intent + "' is not a known intent");
         }
     }
 }
@@ -184,11 +183,15 @@ function processIntent(intent, callback) {
 }
 
 function processWeatherTimeQuery(intent, callback) {
-    console.error("Not implemented yet!");
+    console.error("Not implemented time query yet!");
+    console.info("Ignored as time query not implemented yet.");
 }
 
 function processWeatherStatement(intent, callback) {
-    console.error("Not implemented yet!");
+    console.error("Not implemented time query yet!");
+    
+    callback(false, "Would have attempted to parse statement");
+    console.info("Ignored as statement not implemented yet.");
 };
 
 function processWeatherQuery(intent, callback) {  
