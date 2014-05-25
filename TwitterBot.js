@@ -266,10 +266,22 @@ var ignored_users = ['galgateweather', 'mennewsdesk', 'metoffice', 'chadWeather'
 var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'weatherspoons',
                         'manchester, nh', 'train', '@MetOffice', '@coldplay', 'Cold cave'];
                         
+function isWeatherTweet(tweet) {
+    return arrayInString(tweet.text, weather_keywords, true)
+           && !arrayInString(tweet.user.screen_name, ignored_users)
+           && !arrayInString(tweet.text, ignored_keywords)    
+}
+
+function highlightMatches(string, array) {
+    text = string;
+    for(i=0;i<array.length;i++) {
+      text = text.replace(new RegExp('(' + array[i] + ')','ig'), "$1".red);
+    } 
+}
 
 // Get tweets about the weather
 function streamWeatherTweets() {
-
+ 
     // Bounding boxes do not act as filters for other filter parameters.
     // For example track=twitter&locations=-122.75,36.8,-121.75,37.8 would match
     // any tweets containing the term Twitter (even non-geo tweets) OR coming from the San Francisco area.
@@ -289,16 +301,9 @@ function streamWeatherTweets() {
              
             // @todo should probably validate data, twitter might return a none tweet
             // the steam may contain "non weather" tweets we must filter first
-            if(arrayInString(data.text, weather_keywords)
-                && !arrayInString(data.user.screen_name, ignored_users)
-                && !arrayInString(data.text, ignored_keywords)) {
+            if(isWeatherTweet(data)) {
                
-                textWithMatches = data.text;
-                for(i=0;i<weather_keywords.length;i++) {
-                  textWithMatches = textWithMatches.replace(new RegExp('(' + weather_keywords[i] + ')','ig'),
-                                                            "$1".red);
-                }
-                
+                textWithMatches = highlightMatches(data.text, weather_keywords);                
                 console.info("Matched streamed weather tweet @", data.user.screen_name, " ", textWithMatches);
                 seenTweet(data, true); 
                  
