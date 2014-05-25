@@ -295,6 +295,7 @@ function highlightMatches(string, array) {
     for(i=0;i<array.length;i++) {
       text = text.replace(new RegExp('(' + array[i] + ')','ig'), "$1".red);
     } 
+    return text;
 }
 
 // Get tweets about the weather
