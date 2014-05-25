@@ -16,6 +16,8 @@ var COUNTDOWN_OUTPUT = false;
 
 var TWITTER_ACCOUNT_NAME = "weathermcr";
 
+var DEFAULT_STREAM_SLEEP_SECONDS = 5;
+
 // --- SQL ---
 var sql = [];
 sql['createSeenTweets'] = 'CREATE TABLE IF NOT EXISTS seen_tweets ' +
@@ -223,9 +225,9 @@ var ignored_users = ['galgateweather', 'mennewsdesk', 'metoffice', 'chadWeather'
 var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'weatherspoons',
                         'manchester, nh', '@virgintrains', 'train'];
 
-var DEFAULT_STREAM_SLEEP_SECONDS = 5;
-var weatherStreamSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
-function streamWeatherTweets() {
+function streamWeatherTweets(reconnect_sleep_seconds) {
+  if(typeof reconnect_sleep_seconds === 'undefined')
+      reconnectSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
 
     // Bounding boxes do not act as filters for other filter parameters.
     // For example track=twitter&locations=-122.75,36.8,-121.75,37.8 would match
@@ -282,16 +284,19 @@ function streamWeatherTweets() {
         });
         
         stream.on('end', function(end) {
-            console.info("Stream ended, will attempt to reconnect in "+weatherStreamSleepSeconds"+ seconds");
+            console.info("Stream ended, will attempt to reconnect in "+reconnectSleepSeconds+" seconds");
             clearTimeout(resetStream);
-            setTimeout(streamWeatherTweets, weatherStreamSleepSeconds * 10000);
-            weatherStreamSleepSeconds *= 2; // wait longer next time to avoid hitting rate limits
+            setTimeout(function() {
+              streamWeatherTweets(reconnectSleepSeconds * 2);
+            }, reconnectSleepSeconds * 1000);
         });
         
     }); 
 }
 
-function streamUserReplies() {
+function streamUserReplies(reconnect_sleep_seconds) {
+  if(typeof reconnect_sleep_seconds === 'undefined')
+      reconnectSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
   
   twit.stream('user', { 
       replies: 'all', // By default @replies are only sent if the current user follows both the sender and receiver
@@ -307,8 +312,12 @@ function streamUserReplies() {
         stream.on('data', function(data) {      
             // Upon establishing a User Stream connection Twitter will send
             // a preamble before starting regular message delivery            
-            if(data.friends)
+            if(data.friends) {
+              // reset done here as 'connect' fires even on rejection
+              reconnectSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
               return;  
+            }
+              
             else if(data.text) {
               if(data.text.toLowerCase().indexOf(TWITTER_ACCOUNT_NAME) != -1) {
                                     
@@ -331,11 +340,13 @@ function streamUserReplies() {
             if(error.errorSource) console.error("Twitter User Stream Error:", error);
             else console.error("Other Twitter User stream error");
         });
-        
+            
         stream.on('end', function(end) {
-            console.info("User stream ended, will attempt to reconnect in 15 seconds");
+            console.info("User stream ended, will attempt to reconnect in "+reconnectSleepSeconds+" seconds");
             clearTimeout(resetStream);
-            setTimeout(streamUserReplies, 15000);
+            setTimeout(function() {
+              streamUserReplies(reconnectSleepSeconds * 2);
+            }, reconnectSleepSeconds * 1000);
         });
         
     });
