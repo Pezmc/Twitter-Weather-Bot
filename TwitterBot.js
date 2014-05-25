@@ -196,20 +196,20 @@ function selectTweets(params, callback) {
 }
 
 function updateTweets() { 
-    console.log("Querying twitter for updates");
+    console.log("Querying twitter for updates using polling");
     DB.get(sql['selectNewestTweet'], function(err, result) {
         if(result) params = { 'since_id': (result.id + 1)  }
         else params = {}
             
         selectTweets(params, function(data) {
             if(!data || !data.statuses) {
-                console.warn("No data received from Twitter");
+                console.warn("No data received from Twitter from search poll");
             }
             else
             {
                 var count = data.statuses.length;
                 if(count < 1) {
-                    console.warn("No tweets received from Twitter");
+                    console.warn("No tweets received from Twitter from search poll");
                 }
                     
                 for(i=0;i<count;i++) {
