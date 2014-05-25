@@ -234,6 +234,8 @@ var ignored_users = ['galgateweather', 'mennewsdesk', 'metoffice', 'chadWeather'
 
 var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'weatherspoons', 'manchester, nh', '@virgintrains'];
 
+var DEFAULT_STREAM_SLEEP_SECONDS = 5;
+var weatherStreamSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
 function streamWeatherTweets() {
     //stream_base = this.options.filter_stream_base;
     // function(method, params, callback)
@@ -258,8 +260,11 @@ function streamWeatherTweets() {
         }, 30 * 60 * 1000);
         
         stream.on('data', function(data) {
+        
+            // reset done here as 'connect' fires even on rejection
+            currentStreamSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
+             
             // @todo should probably validate data, twitter might return a none tweet
-            
             // the steam may contain "non weather" tweets we must filter first
             if(arrayInString(data.text, weather_keywords)
                 && !arrayInString(data.user.screen_name, ignored_users)
@@ -289,9 +294,10 @@ function streamWeatherTweets() {
         });
         
         stream.on('end', function(end) {
-            console.info("Stream ended, will attempt to reconnect in 15 seconds");
+            console.info("Stream ended, will attempt to reconnect in "+weatherStreamSleepSeconds"+ seconds");
             clearTimeout(resetStream);
-            setTimeout(streamWeatherTweets, 15000);
+            setTimeout(streamWeatherTweets, weatherStreamSleepSeconds * 10000);
+            weatherStreamSleepSeconds *= 2; // wait longer next time to avoid hitting rate limits
         });
         
     }); 
