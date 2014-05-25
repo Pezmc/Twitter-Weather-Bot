@@ -294,7 +294,17 @@ function streamUserReplies() {
               return;  
             else if(data.text) {
               if(data.text.toLowerCase().indexOf(TWITTER_ACCOUNT_NAME) != -1) {
+                                    
                   console.log("Recieved mention in user stream @", data.user.screen_name, data.text);
+              
+                  // Avoid loops, if we sent the message and it was a reply to US
+                  if(data.in_reply_to_screen_name
+                      && data.in_reply_to_screen_name.toLowerCase() == TWITTER_ACCOUNT_NAME
+                      && data.user.screen_name.toLowerCase() == TWITTER_ACCOUNT_NAME) {
+                      console.warn('Ignored self reply message'); 
+                      return;  
+                  }
+                  
                   seenTweet(data, true, true);
               }
             }                
