@@ -15,7 +15,6 @@ var WEATHER_CONFIG = {
     mode: 'json'
 }
 var MANCHESTER_CITY_ID = 2643123;
-var TWITTER_QUERY = 'weather OR sunny OR rain OR umbrella OR snow OR hail OR warm OR cold OR brolly OR boiling manchester OR #mcr weekend OR today OR tomorrow OR week -rt -from:MENnews -from:metoffice -from:ChadWeather -from:MyWeather_MAN';
 var TWITTER_QUERY = 'weather OR sunny OR rain OR umbrella OR snow OR hail OR warm OR cold OR brolly OR boiling manchester OR #mcr OR mcrweather weekend OR today OR tomorrow OR week -rt -from:MENnews -from:metoffice -from:ChadWeather -from:MyWeather_MAN -from:weathermcr';
 
 // --- App ---
@@ -35,7 +34,7 @@ var witparse = require("./WitWeatherParse.js");
     witparse.config(MIN_WIT_CONFIDENCE, cachedweather);
     
 // --- Function ---
-function processNewTweet(tweet) {
+function processNewTweet(tweet, mention) {
     strippedTweet = stripTwitterURL(tweet.text); // need to remove URL's else wit gets confused
     wit.query(strippedTweet, function(reply){
         witparse.processReply(reply, function(message, action) {
@@ -46,7 +45,7 @@ function processNewTweet(tweet) {
               action = "Sent tweet";
             }
             twitterbot.updateActionTaken(tweet, action);
-        });
+        }, mention);
     });
 }
 

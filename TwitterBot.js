@@ -10,6 +10,8 @@ var QUERY = "";
 var TWEET_CALLBACK = null;
 var DB = null;
 
+var TWITTER_ACCOUNT_NAME = "weathermcr";
+
 // --- SQL ---
 var sql = [];
 sql['createSeenTweets'] = 'CREATE TABLE IF NOT EXISTS seen_tweets ' +
@@ -215,7 +217,7 @@ function updateTweets() {
 
 var weather_keywords = ['weather', 'forecast', 'sunny', 'weather', 'rain',
                         'umbrella', 'snow', 'hail', 'warm', 'cold', 'brolly', 'boiling'];
-var ignored_users = ['galgateweather', 'mennews', 'metoffice', 'chadWeather', 'myweather_man', 'weathermcr'];
+var ignored_users = ['galgateweather', 'mennews', 'metoffice', 'chadWeather', 'myweather_man', TWITTER_ACCOUNT_NAME];
 
 function streamWeatherTweets() {
     //stream_base = this.options.filter_stream_base;
@@ -236,17 +238,19 @@ function streamWeatherTweets() {
         console.info("Connected to twitter filter stream for Manchester");
         
         var resetStream = setTimeout(function() {
-            console.info("Restarting stream as it has been open for 30 minutes");
+            console.info("Restarting manchester stream as it has been open for 30 minutes");
             stream.destroy();
-        }, 300000);
+        }, 30 * 60 * 1000);
         
         stream.on('data', function(data) {
             // @todo should probably validate data, twitter might return a none tweet
             
             // the steam may contain "non weather" tweets we must filter first
-            if(arrayInString(data.text, weather_keywords)) {
-              console.log("Matched stream tweet @", data.user.screen_name, " ", data.text);
+            if(arrayInString(data.text, weather_keywords) && !arrayInString(data.user.screen_name, ignored_users)) {
+              console.info("Matched streamed weather tweet @", data.user.screen_name, " ", data.text);
               seenTweet(data, true);  
+            } else {
+              //console.log("Ignored: @", data.user.screen_name, " ", data.text);
             }
               
         });
@@ -259,15 +263,55 @@ function streamWeatherTweets() {
         stream.on('end', function(end) {
             console.info("Stream ended, will attempt to reconnect in 15 seconds");
             clearTimeout(resetStream);
-            setTimeout(streamTweets, 15000);
+            setTimeout(streamWeatherTweets, 15000);
         });
         
     }); 
 }
 
-//https://userstream.twitter.com/1.1/user.json
+function streamUserReplies() {
+  
+  twit.stream('user', { 
+      replies: 'all', // By default @replies are only sent if the current user follows both the sender and receiver
+      with: 'users' // When set to "users", only messages targeted directly at a user will be delivered
+    }, function(stream) {
+        console.info("Connected to twitter user stream for McrWeather");
+        
+        var resetStream = setTimeout(function() {
+            console.info("Restarting user stream as it has been open for 30 minutes");
+            stream.destroy();
+        }, 30 * 60 * 1000);
+        
+        stream.on('data', function(data) {      
+            // Upon establishing a User Stream connection Twitter will send
+            // a preamble before starting regular message delivery            
+            if(data.friends)
+              return;  
+            else if(data.text) {
+              if(data.text.toLowerCase().indexOf(TWITTER_ACCOUNT_NAME) != -1) {
+                  console.log("Recieved mention in user stream @", data.user.screen_name, data.text);
+                  seenTweet(data, true, true);
+              }
+            }                
+        });
+        
+        stream.on('error', function(error) {
+            if(error.errorSource) console.error("Twitter User Stream Error:", error);
+            else console.error("Other Twitter User stream error");
+        });
+        
+        stream.on('end', function(end) {
+            console.info("User stream ended, will attempt to reconnect in 15 seconds");
+            clearTimeout(resetStream);
+            setTimeout(streamUserReplies, 15000);
+        });
+        
+    });
+}
 
 function arrayInString(string, array) {
+    if(typeof string !== 'string')
+        throw new Error('The term to search must be a string');
 
     for(i=0;i<array.length;i++) {
         if(string.toLowerCase().indexOf(array[i].toLowerCase()) != -1) return true;
@@ -277,9 +321,12 @@ function arrayInString(string, array) {
   
 }
 
-function seenTweet(tweet, streamed) {
+function seenTweet(tweet, streamed, mention) {
     if(typeof streamed === 'undefined')
         streamed = false;
+
+    if(typeof mention === 'undefined')
+        mention = tweet.text.toLowerCase().indexOf(TWITTER_ACCOUNT_NAME) != -1;
         
     var select = DB.prepare(sql['selectExistingTweet']);
     select.get({$tweet_id: tweet.id}, function(err, row) {
@@ -292,7 +339,7 @@ function seenTweet(tweet, streamed) {
               $username: tweet.user.screen_name,
               $streamed: streamed ? 1 : 0  // 0/1 as SQLlite has no boolean support
             }); 
-            TWEET_CALLBACK(tweet);
+            TWEET_CALLBACK(tweet, mention);
             console.info("Logged", tweet.text, tweet.created_at);
         } else {
             console.info("Ignored duplicate", tweet.text, tweet.created_at);
