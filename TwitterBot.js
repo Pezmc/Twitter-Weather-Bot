@@ -127,12 +127,12 @@ exports.sendReply = function(reply_to, message, callback, disable_dummy_tweet) {
    
     if(DUMMY_TWEET && !disable_dummy_tweet) {
       var dummy = { text: message };
-      logSentTweet(dummy, params);
+      logSentTweet(dummy, params, false);
       callback(dummy);
     } else {
       twit.updateStatus(message, params, function(reply) {
           if(reply.id) {
-            logSentTweet(reply, params, false);
+            logSentTweet(reply, params);
             callback(reply);
           } else {
             console.error("Error sending tweet", reply);
@@ -176,7 +176,7 @@ function logSentTweet(tweet, params, real) {
       
     var insert = DB.prepare(sql['logSentTweet']);
     insert.run({ $text: tweet.text, $related_id: params.in_reply_to_status_id });
-    console.log("Tweet sent successfully" + (!real ? " (Mock)" : ""));  
+    console.log("Tweet sent successfully" + (real ? "" : " (Mock)"));  
 }
 
 function selectTweets(params, callback) {
