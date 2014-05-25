@@ -269,7 +269,6 @@ function streamWeatherTweets() {
             if(arrayInString(data.text, weather_keywords)
                 && !arrayInString(data.user.screen_name, ignored_users)
                 && !arrayInString(data.text, ignored_keywords)) {
-              console.info("Matched streamed weather tweet @", data.user.screen_name, " ", data.text);
                
               textWithMatches = data.text;
               for(i=0;i<weather_keywords.length;i++) {
