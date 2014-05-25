@@ -229,7 +229,7 @@ var weather_keywords = ['weather', 'forecast', 'sunny', 'weather', 'rain', 'suns
 
 // Local
 var ignored_users = ['galgateweather', 'mennewsdesk', 'metoffice', 'chadWeather', 'myweather_man',
-                     'uk_storms', 'wx_manchester', TWITTER_ACCOUNT_NAME];
+                     'uk_storms', 'wx_manchester', 'widdop_weather', 'weather', TWITTER_ACCOUNT_NAME];
 
 var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'weatherspoons', 'manchester, nh', '@virgintrains'];
 
