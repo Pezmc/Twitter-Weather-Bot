@@ -13,14 +13,14 @@ exports.query = function(text, callback) {
     };
    
     https.get(options, function(res) {
-      console.log("Recieved reply from Wit with status: " + res.statusCode);
+      //console.log("Recieved reply from Wit with status: " + res.statusCode);
       
       res.on('data', function(data) {
         var result = JSON.parse(data);
         callback(result);
       });
     }).on('error', function(e) {
-      console.log("Got error: " + e.message);
-      callback();
+        console.log("Got Wit error: " + e.message);
+        callback();
     });
 }

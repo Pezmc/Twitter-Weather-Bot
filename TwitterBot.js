@@ -86,7 +86,7 @@ exports.start = function(query, tweet_callback, callback) {
 
 exports.updateActionTaken = function(tweet, actionTaken) {
     var update = DB.prepare(sql['updateActionTaken']);
-    update.bind({$id: tweet.id});
+    update.bind({$id: tweet.id, $action: actionTaken });
     update.run();
 }
 
@@ -174,7 +174,9 @@ function selectTweets(params, callback) {
         'q': QUERY,
         'lang': 'en',
         'result_type': 'recent', //mixed, recent, popular
-        'include_entities': 'false'
+        'f': 'realtime',
+        'include_entities': 'false',
+        'count': 100
     };
     
     params = merge(defaultParams, params);
@@ -196,8 +198,9 @@ function updateTweets() {
             else
             {
                 var count = data.statuses.length;
-                if(count < 1) 
+                if(count < 1) {
                     console.warn("No tweets received from Twitter");
+                }
                     
                 for(i=0;i<count;i++) {
                     var tweet = data.statuses[i];

@@ -24,13 +24,18 @@ exports.config = function(min_confidence, weather_api) {
 }
 
 exports.processReply = function(reply, callback) {
+    if(!reply) {
+        callback(false, "Ignored as wit failed to parse");
+        return;
+    }
+      
     if(reply.outcome.confidence < MIN_CONFIDENCE) {
         callback(false, "Ignored as confidence ("+reply.outcome.confidence+") was below "+MIN_CONFIDENCE+".");
         
     } else {
         var weatherIntent = new WeatherIntent(reply);
         
-        switch(intent.getIntentType()) {
+        switch(weatherIntent.getIntentType()) {
             case INTENT.OTHER:
                 callback(false, "Ignored as wit was unsure of type");
                 console.info("Treated as other and ignored");
@@ -52,10 +57,10 @@ exports.processReply = function(reply, callback) {
 
 function WeatherIntent(witReply) {
     var witReply = witReply;
-    var entities = witReply.entities;
+    var entities = witReply.outcome.entities;
     
     this.getIntentType = function() {
-        return this.witReply.outcome.intent
+        return witReply.outcome.intent
     }
     
     this.getIsManchester = function() {
@@ -93,24 +98,24 @@ function WeatherIntent(witReply) {
                 timePeriod.to = entities.datetime.value.to;
                 timePeriod.name = entities.datetime.body;
             }
+            timePeriod.from = new Date(timePeriod.from);
+            timePeriod.to = new Date(timePeriod.to);
         }
         
         return timePeriod;
     }
-    
-    this.timePeriod = {};
-    
-    this.timePeriod.getFromUnix = function() {
+        
+    this.getFromUnixTime = function() {
         return this.getTimePeriod().from.getTime() / 1000;    
     }
     
-    this.timePeriod.getToUnix = function() {
+    this.getToUnixTime = function() {
         return this.getTimePeriod().to.getTime() / 1000; 
     }
     
-    this.timePeriod.getAverageUnix = function() {
-        return Math.round((this.timePeriod.getFromUnix() +
-                           this.timePeriod.getToUnix()) / 2);
+    this.getAverageUnixTime = function() {
+        return Math.round((this.getFromUnixTime() +
+                           this.getToUnixTime()) / 2);
     }
     
     this.getWeatherType = function() {
@@ -130,7 +135,7 @@ function WeatherIntent(witReply) {
            weatherTemperature = entities.weather_temperature.value;
         }   
         
-        return  weatherTemperature;  
+        return weatherTemperature;  
     }
 }
 
@@ -159,7 +164,7 @@ function processWeatherStatement(intent, callback) {
 
 function processWeatherQuery(intent, callback) {  
     
-    var averageDate = intent.timePeriod.getAverageUnix();
+    var averageDate = intent.getAverageUnixTime();
     var weatherType = intent.getWeatherType();
     var weatherTemperature = intent.getWeatherTemperature();
     var timePeriod = intent.getTimePeriod();
