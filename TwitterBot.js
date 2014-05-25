@@ -348,16 +348,27 @@ function streamUserReplies() {
     );
 }
 
-function arrayInString(string, array) {
+function arrayInString(string, array, ignore_mentions) {
     if(typeof string !== 'string')
         throw new Error('The term to search must be a string');
 
+    if(typeof ignore_mentions === 'undefined')
+        ignore_mentions = false;
+
     for(i=0;i<array.length;i++) {
-        if(string.toLowerCase().indexOf(array[i].toLowerCase()) != -1) return true;
+        if(string.toLowerCase().indexOf(array[i].toLowerCase()) != -1) {
+            if(!ignore_mentions) return true;
+            else { 
+              // note double escape and trim due to trailing spaces
+              var re = new RegExp('@\\w*'+array[i].trim(),'i');
+              if(!re.test(string))
+                  return true;
+            }
+        }
     }
     
     return false;
-  
+    
 }
 
 function seenTweet(tweet, streamed, mention) {
