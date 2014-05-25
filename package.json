@@ -11,5 +11,7 @@
     "sqlite3": "^2.2.3",
     "twitter": "^0.2.9"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "should": "^3.3.2"
+  }
 }
