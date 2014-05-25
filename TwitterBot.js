@@ -18,24 +18,32 @@ var TWITTER_ACCOUNT_NAME = "weathermcr";
 
 var DEFAULT_STREAM_SLEEP_SECONDS = 5;
 
+var TWEET_TYPE = { 
+  POLLED: "polled",
+  STREAMED: "streamed"
+}
+
 // --- SQL ---
 var sql = [];
 sql['createSeenTweets'] = 'CREATE TABLE IF NOT EXISTS seen_tweets ' +
-                          '(id INTEGER PRIMARY KEY, time DATETIME DEFAULT current_timestamp, text TEXT, user_id INTEGER,' + 
-                          ' username TEXT, action_taken TEXT, streamed BOOLEAN)';
+                          '(id INTEGER PRIMARY KEY, time DATETIME DEFAULT current_timestamp, text TEXT, ' + 
+                            'user_id INTEGER, username TEXT, action_taken TEXT, streamed BOOLEAN DEFAULT 0, ' +
+                            'polled BOOLEAN DEFAULT 0, mention BOOLEAN DEFAULT 0)';
 sql['createSentTweets'] = 'CREATE TABLE IF NOT EXISTS sent_tweets ' +
                           '(id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, related_tweet_id INTEGER)';
 sql['createAPILogin'] =   'CREATE TABLE IF NOT EXISTS api_login ' +
                           '(id INTEGER PRIMARY KEY AUTOINCREMENT, access_token_key TEXT, access_token_secret TEXT)';
 
 sql['selectNewestAPI'] =     'SELECT * FROM api_login ORDER BY id DESC LIMIT 1';                        
-sql['selectNewestTweet'] =   'SELECT id FROM seen_tweets WHERE streamed = 0 ORDER BY id DESC LIMIT 1';
+sql['selectNewestTweet'] =   'SELECT id FROM seen_tweets WHERE streamed = 0 OR polled = 1 ORDER BY id DESC LIMIT 1';
 sql['selectExistingTweet'] = "SELECT 1 as 'exist' FROM seen_tweets WHERE id = $tweet_id LIMIT 1";
 
 sql['updateActionTaken'] = 'UPDATE seen_tweets SET action_taken = $action WHERE id = $id';
+sql['updatePolled'] =      'UPDATE seen_tweets SET polled = $polled WHERE id = $id';
 
-sql['insertSeenTweet'] = 'INSERT INTO seen_tweets (id, text, user_id, username, streamed) ' + 
-                         'VALUES ($id, $text, $user_id, $username, $streamed)';
+
+sql['insertSeenTweet'] = 'INSERT INTO seen_tweets (id, text, user_id, username, streamed, polled, mention) ' + 
+                         'VALUES ($id, $text, $user_id, $username, $streamed, $polled, $mention)';
 sql['logSentTweet'] =    'INSERT INTO sent_tweets (text, related_tweet_id) VALUES ($text, $related_id)';
 sql['insertAPILogin'] =  'INSERT INTO api_login (access_token_key, access_token_secret) VALUES ($key, $secret)';
 
@@ -207,7 +215,7 @@ function updateTweets() {
                     var tweet = data.statuses[i];
                     
                     if(isWeatherTweet(data)) {
-                        seenTweet(tweet);
+                        seenTweet(tweet, TWEET_TYPE.POLLED);
                     } else {
                         fs.appendFile('ignoredTweets.txt', data.user.screen_name
                                        + ":\t"
@@ -315,7 +323,7 @@ function streamWeatherTweets() {
                
                 textWithMatches = highlightMatches(data.text, weather_keywords);                
                 console.info("Matched streamed weather tweet @", data.user.screen_name, " ", textWithMatches);
-                seenTweet(data, true); 
+                seenTweet(data, TWEET_TYPE.STREAMED); 
                  
             } else {
                 fs.appendFile('ignoredTweets.txt', data.user.screen_name
@@ -352,7 +360,7 @@ function streamUserReplies() {
                     return;  
                 }
                 
-                seenTweet(data, true, true);
+                seenTweet(data, TWEET_TYPE.STREAMED, true);
             }                
         }
     );
@@ -381,9 +389,7 @@ function arrayInString(string, array, ignore_mentions) {
     
 }
 
-function seenTweet(tweet, streamed, mention) {
-    if(typeof streamed === 'undefined')
-        streamed = false;
+function seenTweet(tweet, type, mention) {
 
     if(typeof mention === 'undefined')
         mention = tweet.text.toLowerCase().indexOf(TWITTER_ACCOUNT_NAME) != -1;
@@ -397,14 +403,20 @@ function seenTweet(tweet, streamed, mention) {
               $text: tweet.text,
               $user_id: tweet.user.id,
               $username: tweet.user.screen_name,
-              $streamed: streamed ? 1 : 0  // 0/1 as SQLlite has no boolean support
+              $streamed: type == TWEET_TYPE.STREAMED ? 1 : 0,  // 0/1 as SQLlite has no boolean support
+              $polled: type == TWEET_TYPE.POLLED ? 1 : 0,
+              $mention: mention ? 1 : 0,
             }); 
             TWEET_CALLBACK(tweet, mention);
             console.info("Logged: ", tweet.text, tweet.created_at);
         } else {
             console.info("Ignored duplicate: ", tweet.text, tweet.created_at);
-            // @todo if streamed == false, I might need to mark this as non-streamed
+
             // to prevent the non-stream falling behind if the stream is capturing everything
+            if(type == TWEET_TYPE.POLLED) {
+                var update = DB.prepare(sql['updatePolled']);
+                update.run({ $id: tweet.id, $polled: 1 });
+            }
         }
     });                
 }
