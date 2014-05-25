@@ -13,17 +13,18 @@ var DB = null;
 // --- SQL ---
 var sql = [];
 sql['createSeenTweets'] = 'CREATE TABLE IF NOT EXISTS seen_tweets ' +
-                          '(id INTEGER PRIMARY KEY, text TEXT, user_id INTEGER, username TEXT, action_taken TEXT)';
+                          '(id INTEGER PRIMARY KEY, time DATETIME DEFAULT current_timestamp, text TEXT, user_id INTEGER,' + 
+                          ' username TEXT, action_taken TEXT, streamed BOOLEAN)';
 sql['createSentTweets'] = 'CREATE TABLE IF NOT EXISTS sent_tweets ' +
                           '(id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, related_tweet_id INTEGER)';
 
-sql['selectNewestTweet'] =   'SELECT id FROM seen_tweets ORDER BY id DESC LIMIT 1';
+sql['selectNewestTweet'] =   'SELECT id FROM seen_tweets WHERE streamed = 0 ORDER BY id DESC LIMIT 1';
 sql['selectExistingTweet'] = "SELECT 1 as 'exist' FROM seen_tweets WHERE id = $tweet_id LIMIT 1";
 
 sql['updateActionTaken'] = 'UPDATE seen_tweets SET action_taken = $action WHERE id = $id';
 
-sql['insertSeenTweet'] = 'INSERT INTO seen_tweets (id, text, user_id, username) ' + 
-                         'VALUES ($id, $text, $user_id, $username)';
+sql['insertSeenTweet'] = 'INSERT INTO seen_tweets (id, text, user_id, username, streamed) ' + 
+                         'VALUES ($id, $text, $user_id, $username, $streamed)';
 sql['logSentTweet'] =    'INSERT INTO sent_tweets (text, related_tweet_id) VALUES ($text, $related_id)';
 
 // --- public
@@ -181,7 +182,74 @@ function updateTweets() {
     });
 }
 
-function seenTweet(tweet) {
+var weather_keywords = ['weather', 'forecast', 'sunny', 'weather', 'rain',
+                        'umbrella', 'snow', 'hail', 'warm', 'cold', 'brolly', 'boiling'];
+var ignored_users = ['galgateweather', 'mennews', 'metoffice', 'chadWeather', 'myweather_man', 'weathermcr'];
+
+function streamWeatherTweets() {
+    //stream_base = this.options.filter_stream_base;
+    // function(method, params, callback)
+    // Bounding boxes do not act as filters for other filter parameters. For example track=twitter&locations=-122.75,36.8,-121.75,37.8 would match any tweets containing the term Twitter (even non-geo tweets) OR coming from the San Francisco area.
+
+    track = []
+    
+    for(i=0;i<weather_keywords.length;i++) {
+      track.push(weather_keywords[i] + ' manchester');
+      track.push(weather_keywords[i] + ' #mcr');
+    }
+    
+    twit.stream('filter', { 
+      track: ["weather manchester", "rain manchester", "sunny manchester", "snow manchester"],
+      locations: '-2.275,53.45,-2.2,53.5' // bottom right, top left - lon/lat
+    }, function(stream) {
+        console.info("Connected to twitter filter stream for Manchester");
+        
+        var resetStream = setTimeout(function() {
+            console.info("Restarting stream as it has been open for 30 minutes");
+            stream.destroy();
+        }, 300000);
+        
+        stream.on('data', function(data) {
+            // @todo should probably validate data, twitter might return a none tweet
+            
+            // the steam may contain "non weather" tweets we must filter first
+            if(arrayInString(data.text, weather_keywords)) {
+              console.log("Matched stream tweet @", data.user.screen_name, " ", data.text);
+              seenTweet(data, true);  
+            }
+              
+        });
+        
+        stream.on('error', function(error) {
+            if(error.errorSource) console.error("Twitter Stream Error:", error);
+            else console.error("Other Twitter stream error");
+        });
+        
+        stream.on('end', function(end) {
+            console.info("Stream ended, will attempt to reconnect in 15 seconds");
+            clearTimeout(resetStream);
+            setTimeout(streamTweets, 15000);
+        });
+        
+    }); 
+}
+
+//https://userstream.twitter.com/1.1/user.json
+
+function arrayInString(string, array) {
+
+    for(i=0;i<array.length;i++) {
+        if(string.toLowerCase().indexOf(array[i].toLowerCase()) != -1) return true;
+    }
+    
+    return false;
+  
+}
+
+function seenTweet(tweet, streamed) {
+    if(typeof streamed === 'undefined')
+        streamed = false;
+        
     var select = DB.prepare(sql['selectExistingTweet']);
     select.get({$tweet_id: tweet.id}, function(err, row) {
         if(!row) { // If the result set is empty, the second parameter is undefined
@@ -190,12 +258,15 @@ function seenTweet(tweet) {
               $id: tweet.id,
               $text: tweet.text,
               $user_id: tweet.user.id,
-              $username: tweet.user.screen_name
+              $username: tweet.user.screen_name,
+              $streamed: streamed ? 1 : 0  // 0/1 as SQLlite has no boolean support
             }); 
             TWEET_CALLBACK(tweet);
             console.info("Logged", tweet.text, tweet.created_at);
         } else {
             console.info("Ignored duplicate", tweet.text, tweet.created_at);
+            // @todo if streamed == false, I might need to mark this as non-streamed
+            // to prevent the non-stream falling behind if the stream is capturing everything
         }
     });                
 }
