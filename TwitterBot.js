@@ -292,8 +292,8 @@ function streamWeatherTweets() {
                
                 textWithMatches = data.text;
                 for(i=0;i<weather_keywords.length;i++) {
-                  textWithMatches = textWithMatches.replace(new RegExp('(^|)(' + weather_keywords[i] + ')(|$)','ig'),
-                                                            '$1' + "$2".red + '$3');
+                  textWithMatches = textWithMatches.replace(new RegExp('(' + weather_keywords[i] + ')','ig'),
+                                                            "$1".red);
                 }
                 
                 console.info("Matched streamed weather tweet @", data.user.screen_name, " ", textWithMatches);
