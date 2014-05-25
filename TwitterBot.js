@@ -58,9 +58,9 @@ exports.dummy = function(search, tweets) {
     DUMMY_SEARCH = search;
     DUMMY_TWEET = tweets;
     if(DUMMY_SEARCH)
-      console.log("Using dummy twitter search");
+      console.warn("Using dummy twitter search");
     if(DUMMY_TWEET)
-      console.log("Using dummy twitter tweet");  
+      console.warn("Using dummy twitter tweet");  
 }
 
 exports.start = function(query, tweet_callback, callback) {
@@ -122,7 +122,7 @@ exports.sendReply = function(reply_to, message, callback, disable_dummy_tweet) {
     if(message.length > 140)
         console.error("Message over 140 letters: " + message);
 
-    console.log("Attempting to send", message);
+    console.info("Attempting to send", message);
    
     if(DUMMY_TWEET && !disable_dummy_tweet) {
       var dummy = { text: message };
@@ -156,13 +156,13 @@ function requireAuthentication(callback) {
     
     app.get('/', twit.gatekeeper('/login'), function(req, res){
       res.send('Authentification successfull');
-      console.log("Auth complete, closing authentication server.");
+      console.info("Auth complete, closing authentication server.");
       server.close();
       callback();
     });
     app.get('/twauth', twit.login());
     
-    console.log('Listening on 1200 for auth requests to Twitter');
+    console.info('Listening on 1200 for auth requests to Twitter');
     server = app.listen(1200);
 }
 
@@ -175,7 +175,7 @@ function logSentTweet(tweet, params, real) {
       
     var insert = DB.prepare(sql['logSentTweet']);
     insert.run({ $text: tweet.text, $related_id: params.in_reply_to_status_id });
-    console.log("Tweet sent successfully" + (real ? "" : " (Mock)"));  
+    console.info("Tweet sent successfully" + (real ? "" : " (Mock)"));  
 }
 
 function selectTweets(params, callback) {
@@ -195,7 +195,7 @@ function selectTweets(params, callback) {
 }
 
 function updateTweets() { 
-    console.log("Querying twitter for updates using polling");
+    console.info("Querying twitter for updates using polling");
     DB.get(sql['selectNewestTweet'], function(err, result) {
         if(result) params = { 'since_id': (result.id + 1)  }
         else params = {}
@@ -351,7 +351,7 @@ function streamUserReplies() {
             }
               
             else if(data.text && data.text.toLowerCase().indexOf(TWITTER_ACCOUNT_NAME) != -1) {
-                console.log("Recieved mention in user stream @", data.user.screen_name, data.text);
+                console.info("Recieved mention in user stream @", data.user.screen_name, data.text);
                 
                 // Avoid loops, if we sent the message and it was a reply to US
                 if(data.in_reply_to_screen_name
