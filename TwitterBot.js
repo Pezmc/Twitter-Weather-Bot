@@ -224,14 +224,14 @@ function updateTweets() {
 }
 
 // Twitter side
-var weather_keywords = ['weather', 'forecast', 'sunny', 'weather', 'rain',
+var weather_keywords = ['weather', 'forecast', 'sunny', 'weather', 'rain', 'sunshine',
                         'umbrella', 'snow', 'hail', 'warm', 'cold', 'brolly', 'boiling'];
 
 // Local
 var ignored_users = ['galgateweather', 'mennewsdesk', 'metoffice', 'chadWeather', 'myweather_man',
                      'uk_storms', 'wx_manchester', TWITTER_ACCOUNT_NAME];
 
-var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'weatherspoons', 'manchester, nh'];
+var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'weatherspoons', 'manchester, nh', '@virgintrains'];
 
 function streamWeatherTweets() {
     //stream_base = this.options.filter_stream_base;
