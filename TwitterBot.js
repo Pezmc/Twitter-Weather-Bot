@@ -220,9 +220,15 @@ function updateTweets() {
     });
 }
 
+// Twitter side
 var weather_keywords = ['weather', 'forecast', 'sunny', 'weather', 'rain',
                         'umbrella', 'snow', 'hail', 'warm', 'cold', 'brolly', 'boiling'];
-var ignored_users = ['galgateweather', 'mennews', 'metoffice', 'chadWeather', 'myweather_man', TWITTER_ACCOUNT_NAME];
+
+// Local
+var ignored_users = ['galgateweather', 'mennewsdesk', 'metoffice', 'chadWeather', 'myweather_man',
+                     'uk_storms', 'wx_manchester', TWITTER_ACCOUNT_NAME];
+
+var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'weatherspoons', 'manchester, nh'];
 
 function streamWeatherTweets() {
     //stream_base = this.options.filter_stream_base;
@@ -251,7 +257,9 @@ function streamWeatherTweets() {
             // @todo should probably validate data, twitter might return a none tweet
             
             // the steam may contain "non weather" tweets we must filter first
-            if(arrayInString(data.text, weather_keywords) && !arrayInString(data.user.screen_name, ignored_users)) {
+            if(arrayInString(data.text, weather_keywords)
+                && !arrayInString(data.user.screen_name, ignored_users)
+                && !arrayInString(data.text, ignored_keywords)) {
               console.info("Matched streamed weather tweet @", data.user.screen_name, " ", data.text);
               seenTweet(data, true);  
             } else {
