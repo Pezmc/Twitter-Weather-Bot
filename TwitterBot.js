@@ -129,7 +129,7 @@ exports.sendReply = function(reply_to, message, callback, disable_dummy_tweet) {
     } else {
       twit.updateStatus(message, params, function(reply) {
           if(reply.id) {
-            logSentTweet(reply, null, false);
+            logSentTweet(reply, params, false);
             callback(reply);
           } else {
             console.error("Error sending tweet", reply);
