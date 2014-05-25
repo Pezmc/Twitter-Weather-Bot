@@ -254,7 +254,7 @@ function streamTweets(type, params, dataCallback, reconnectSleepSeconds) {
 }
 
 // Twitter side
-var weather_keywords = ['weather', 'forecast', 'sunny', 'weather', 'rain', 'sunshine',
+var weather_keywords = ['weather', 'forecast', 'sunny', 'weather', ' rain', 'sunshine',
                         'umbrella', 'snow', 'hail', 'warm', 'cold', 'brolly', 'boiling'];
 
 // Local
