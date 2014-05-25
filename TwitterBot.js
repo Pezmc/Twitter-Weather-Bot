@@ -214,6 +214,45 @@ function updateTweets() {
     });
 }
 
+// Connect to a twitter stream
+function streamTweets(type, params, dataCallback, reconnectSleepSeconds) {
+    if(typeof reconnectSleepSeconds === 'undefined')
+        reconnectSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
+  
+    twit.stream(type, params, function(stream) {
+        console.info("Connected to twitter "+type+" stream");
+        
+        var resetStream = setTimeout(function() {
+            console.info("Restarting "+type+" stream as it has been open for 30 minutes");
+            stream.destroy();
+        }, 30 * 60 * 1000);
+        
+        stream.on('data', function(data) {
+        
+            // reset done here as 'connect' fires even on rejection
+            reconnectSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
+             
+            dataCallback(data);
+              
+        });
+        
+        stream.on('error', function(error) {
+            if(error.errorSource) console.error("Twitter "+type+" stream error:", error);
+            else console.error("Other Twitter "+type+" stream error");
+        });
+        
+        stream.on('end', function(end) {
+            console.info("Stream "+type+" ended, will attempt to reconnect in "+reconnectSleepSeconds+" seconds");
+            clearTimeout(resetStream);
+            setTimeout(function() {
+              streamTweets(type, params, dataCallback, reconnectSleepSeconds * 2);
+            }, reconnectSleepSeconds * 1000);
+        });
+        
+    });   
+
+}
+
 // Twitter side
 var weather_keywords = ['weather', 'forecast', 'sunny', 'weather', 'rain', 'sunshine',
                         'umbrella', 'snow', 'hail', 'warm', 'cold', 'brolly', 'boiling'];
@@ -225,9 +264,8 @@ var ignored_users = ['galgateweather', 'mennewsdesk', 'metoffice', 'chadWeather'
 var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'weatherspoons',
                         'manchester, nh', '@virgintrains', 'train'];
 
-function streamWeatherTweets(reconnect_sleep_seconds) {
-  if(typeof reconnect_sleep_seconds === 'undefined')
-      reconnectSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
+// Get tweets about the weather
+function streamWeatherTweets() {
 
     // Bounding boxes do not act as filters for other filter parameters.
     // For example track=twitter&locations=-122.75,36.8,-121.75,37.8 would match
@@ -239,21 +277,12 @@ function streamWeatherTweets(reconnect_sleep_seconds) {
       track.push(weather_keywords[i] + ' #mcr');
     }
     
-    twit.stream('filter', { 
-      track: ["weather manchester", "rain manchester", "sunny manchester", "snow manchester"],
-      locations: '-2.275,53.45,-2.2,53.5' // bottom right, top left - lon/lat
-    }, function(stream) {
-        console.info("Connected to twitter filter stream for Manchester");
-        
-        var resetStream = setTimeout(function() {
-            console.info("Restarting manchester stream as it has been open for 30 minutes");
-            stream.destroy();
-        }, 30 * 60 * 1000);
-        
-        stream.on('data', function(data) {
-        
-            // reset done here as 'connect' fires even on rejection
-            currentStreamSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
+    streamTweets('filter',
+        { 
+            track: track,
+            locations: '-2.275,53.45,-2.2,53.5' // bottom right, top left - lon/lat
+        }, 
+        function(data) {
              
             // @todo should probably validate data, twitter might return a none tweet
             // the steam may contain "non weather" tweets we must filter first
@@ -261,95 +290,54 @@ function streamWeatherTweets(reconnect_sleep_seconds) {
                 && !arrayInString(data.user.screen_name, ignored_users)
                 && !arrayInString(data.text, ignored_keywords)) {
                
-              textWithMatches = data.text;
-              for(i=0;i<weather_keywords.length;i++) {
-                textWithMatches = textWithMatches.replace(new RegExp('(^|)(' + weather_keywords[i] + ')(|$)','ig'),
-                                                          '$1' + "$2".red + '$3');
-              }
-              
-              console.info("Matched streamed weather tweet @", data.user.screen_name, " ", textWithMatches);
-              seenTweet(data, true);  
+                textWithMatches = data.text;
+                for(i=0;i<weather_keywords.length;i++) {
+                  textWithMatches = textWithMatches.replace(new RegExp('(^|)(' + weather_keywords[i] + ')(|$)','ig'),
+                                                            '$1' + "$2".red + '$3');
+                }
+                
+                console.info("Matched streamed weather tweet @", data.user.screen_name, " ", textWithMatches);
+                seenTweet(data, true); 
+                 
             } else {
-              fs.appendFile('ignoredTweets.txt', data.user.screen_name
-                                                  + ":\t"
-                                                  + data.text.replace(/(\r\n|\n|\r)/gm," \\ ")
-                                                  + "\n");
+                fs.appendFile('ignoredTweets.txt', data.user.screen_name
+                                                    + ":\t"
+                                                    + data.text.replace(/(\r\n|\n|\r)/gm," \\ ")
+                                                    + "\n");
             }
               
-        });
-        
-        stream.on('error', function(error) {
-            if(error.errorSource) console.error("Twitter Stream Error:", error);
-            else console.error("Other Twitter stream error");
-        });
-        
-        stream.on('end', function(end) {
-            console.info("Stream ended, will attempt to reconnect in "+reconnectSleepSeconds+" seconds");
-            clearTimeout(resetStream);
-            setTimeout(function() {
-              streamWeatherTweets(reconnectSleepSeconds * 2);
-            }, reconnectSleepSeconds * 1000);
-        });
-        
-    }); 
+        }
+    );    
 }
 
-function streamUserReplies(reconnect_sleep_seconds) {
-  if(typeof reconnect_sleep_seconds === 'undefined')
-      reconnectSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
-  
-  twit.stream('user', { 
-      replies: 'all', // By default @replies are only sent if the current user follows both the sender and receiver
-      with: 'users' // When set to "users", only messages targeted directly at a user will be delivered
-    }, function(stream) {
-        console.info("Connected to twitter user stream for McrWeather");
-        
-        var resetStream = setTimeout(function() {
-            console.info("Restarting user stream as it has been open for 30 minutes");
-            stream.destroy();
-        }, 30 * 60 * 1000);
-        
-        stream.on('data', function(data) {      
+function streamUserReplies() {
+    streamTweets('user',
+        { 
+            replies: 'all', // By default @replies are only sent if the current user follows the sender and receiver
+            with: 'users' // When set to "users", only messages targeted directly at a user will be delivered
+        },
+        function(data) {      
             // Upon establishing a User Stream connection Twitter will send
             // a preamble before starting regular message delivery            
             if(data.friends) {
-              // reset done here as 'connect' fires even on rejection
-              reconnectSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
-              return;  
+                return;  
             }
               
-            else if(data.text) {
-              if(data.text.toLowerCase().indexOf(TWITTER_ACCOUNT_NAME) != -1) {
-                                    
-                  console.log("Recieved mention in user stream @", data.user.screen_name, data.text);
-              
-                  // Avoid loops, if we sent the message and it was a reply to US
-                  if(data.in_reply_to_screen_name
-                      && data.in_reply_to_screen_name.toLowerCase() == TWITTER_ACCOUNT_NAME
-                      && data.user.screen_name.toLowerCase() == TWITTER_ACCOUNT_NAME) {
-                      console.warn('Ignored self reply message'); 
-                      return;  
-                  }
-                  
-                  seenTweet(data, true, true);
-              }
+            else if(data.text && data.text.toLowerCase().indexOf(TWITTER_ACCOUNT_NAME) != -1) {
+                console.log("Recieved mention in user stream @", data.user.screen_name, data.text);
+                
+                // Avoid loops, if we sent the message and it was a reply to US
+                if(data.in_reply_to_screen_name
+                    && data.in_reply_to_screen_name.toLowerCase() == TWITTER_ACCOUNT_NAME
+                    && data.user.screen_name.toLowerCase() == TWITTER_ACCOUNT_NAME) {
+                    console.warn('Ignored self reply message'); 
+                    return;  
+                }
+                
+                seenTweet(data, true, true);
             }                
-        });
-        
-        stream.on('error', function(error) {
-            if(error.errorSource) console.error("Twitter User Stream Error:", error);
-            else console.error("Other Twitter User stream error");
-        });
-            
-        stream.on('end', function(end) {
-            console.info("User stream ended, will attempt to reconnect in "+reconnectSleepSeconds+" seconds");
-            clearTimeout(resetStream);
-            setTimeout(function() {
-              streamUserReplies(reconnectSleepSeconds * 2);
-            }, reconnectSleepSeconds * 1000);
-        });
-        
-    });
+        }
+    );
 }
 
 function arrayInString(string, array) {
