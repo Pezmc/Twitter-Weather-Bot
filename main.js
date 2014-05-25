@@ -41,12 +41,18 @@ function processNewTweet(tweet, mention) {
     wit.query(strippedTweet, function(reply){
         witparse.processReply(reply, function(message, action) {
             if(message != false) {
-              twitterbot.sendReply(tweet, message, function(tweet) {
-                // callback on reply
-              }, mention);
-              action = "Sent tweet";
+            
+              // Behave a bit more "human" by waiting
+              setTimeout(function() {             
+                twitterbot.sendReply(tweet, message, function(tweet) {
+                  twitterbot.updateActionTaken(tweet, "Sent tweet");
+                }, mention);
+              }, 3000 + Math.floor(Math.random() * 5000));
+              
+            } else {
+              twitterbot.updateActionTaken(tweet, action);
             }
-            twitterbot.updateActionTaken(tweet, action);
+            
         }, mention && !DUMMY_TWITTER_MENTION_TWEET);
     });
 }
