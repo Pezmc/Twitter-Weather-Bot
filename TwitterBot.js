@@ -3,6 +3,7 @@ var util = require('util'),
 var twit;
 var merge = require('merge');
 var fs = require('fs')
+var colors = require('colors');
 
 var DUMMY_SEARCH = false;
 var DUMMY_TWEET = false;
@@ -264,6 +265,14 @@ function streamWeatherTweets() {
                 && !arrayInString(data.user.screen_name, ignored_users)
                 && !arrayInString(data.text, ignored_keywords)) {
               console.info("Matched streamed weather tweet @", data.user.screen_name, " ", data.text);
+               
+              textWithMatches = data.text;
+              for(i=0;i<weather_keywords.length;i++) {
+                textWithMatches = textWithMatches.replace(new RegExp('(^|)(' + weather_keywords[i] + ')(|$)','ig'),
+                                                          '$1' + "$2".red + '$3');
+              }
+              
+              console.info("Matched streamed weather tweet @", data.user.screen_name, " ", textWithMatches);
               seenTweet(data, true);  
             } else {
               fs.appendFile('ignoredTweets.txt', data.user.screen_name
