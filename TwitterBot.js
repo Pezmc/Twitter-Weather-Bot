@@ -203,6 +203,7 @@ function updateTweets() {
         selectTweets(params, function(data) {
             if(!data || !data.statuses) {
                 console.warn("No data received from Twitter from search poll");
+                if(data) console.error(data);
             }
             else
             {
