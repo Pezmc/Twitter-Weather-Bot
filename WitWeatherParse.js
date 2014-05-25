@@ -39,8 +39,8 @@ exports.processReply = function(reply, callback, mention) {
         var weatherIntent = new WeatherIntent(reply);
         
         //mentions should never be statements as a "question" is implicit (I think)
-        if(mention && (weatherIntent.getIntentType() != INTENT.QUERY
-                       || weatherIntent.getIntentType() != INTENT.TIME_QUERY)) {
+        if(mention && weatherIntent.getIntentType() != INTENT.QUERY
+                   && weatherIntent.getIntentType() != INTENT.TIME_QUERY) {
             
             var replyIntro = ["I'm sorry, I don't know what that means",
                               "I don't understand you, please try again",
