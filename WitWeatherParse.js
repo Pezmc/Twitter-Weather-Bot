@@ -23,7 +23,10 @@ exports.config = function(min_confidence, weather_api) {
     MIN_CONFIDENCE = min_confidence;
 }
 
-exports.processReply = function(reply, callback) {
+exports.processReply = function(reply, callback, mention) {
+    if(typeof mention === 'undefined')
+        mention = false;
+
     if(!reply) {
         callback(false, "Ignored as wit failed to parse");
         return;
@@ -34,6 +37,28 @@ exports.processReply = function(reply, callback) {
         
     } else {
         var weatherIntent = new WeatherIntent(reply);
+        
+        //mentions should never be statements as a "question" is implicit (I think)
+        if(mention && (weatherIntent.getIntentType() != INTENT.QUERY
+                       || weatherIntent.getIntentType() != INTENT.TIME_QUERY)) {
+            
+            var replyIntro = ["I'm sorry, I don't know what that means",
+                              "I don't understand you, please try again",
+                              "I don't understand",
+                              "I can only reply to questions about the weather"
+                             ]
+            var replyEnd =   ["Try asking a question, for example 'will it rain today?'",
+                              "Ask me about the weather e.g. 'what will the weather be this weekend?'",
+                              "Try a question e.g. 'will it rain tomorrow afternoon?'",
+                              "Please ask a clear question about the weather!"
+                             ]
+            
+            var start = replyIntro[Math.floor(Math.random() * replyIntro.length)];
+            var end = replyEnd[Math.floor(Math.random() * replyEnd.length)];
+            console.warn("Wit didn't understand mention '"+ reply.msg_body +"'")
+            callback(reply + ". " + end);
+            return;
+        } 
         
         switch(weatherIntent.getIntentType()) {
             case INTENT.OTHER:
@@ -61,6 +86,10 @@ function WeatherIntent(witReply) {
     
     this.getIntentType = function() {
         return witReply.outcome.intent
+    }
+    
+    this.setIntentType = function(intent) {
+        witReply.outcome.intent = intent;
     }
     
     this.getIsManchester = function() {
