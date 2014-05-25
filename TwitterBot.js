@@ -237,10 +237,10 @@ var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'w
 var DEFAULT_STREAM_SLEEP_SECONDS = 5;
 var weatherStreamSleepSeconds = DEFAULT_STREAM_SLEEP_SECONDS;
 function streamWeatherTweets() {
-    //stream_base = this.options.filter_stream_base;
-    // function(method, params, callback)
-    // Bounding boxes do not act as filters for other filter parameters. For example track=twitter&locations=-122.75,36.8,-121.75,37.8 would match any tweets containing the term Twitter (even non-geo tweets) OR coming from the San Francisco area.
 
+    // Bounding boxes do not act as filters for other filter parameters.
+    // For example track=twitter&locations=-122.75,36.8,-121.75,37.8 would match
+    // any tweets containing the term Twitter (even non-geo tweets) OR coming from the San Francisco area.
     track = []
     
     for(i=0;i<weather_keywords.length;i++) {
