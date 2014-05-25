@@ -371,9 +371,9 @@ function seenTweet(tweet, streamed, mention) {
               $streamed: streamed ? 1 : 0  // 0/1 as SQLlite has no boolean support
             }); 
             TWEET_CALLBACK(tweet, mention);
-            console.info("Logged", tweet.text, tweet.created_at);
+            console.info("Logged: ", tweet.text, tweet.created_at);
         } else {
-            console.info("Ignored duplicate", tweet.text, tweet.created_at);
+            console.info("Ignored duplicate: ", tweet.text, tweet.created_at);
             // @todo if streamed == false, I might need to mark this as non-streamed
             // to prevent the non-stream falling behind if the stream is capturing everything
         }
