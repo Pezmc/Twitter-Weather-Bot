@@ -254,8 +254,8 @@ function streamTweets(type, params, dataCallback, reconnectSleepSeconds) {
 }
 
 // Twitter side
-var weather_keywords = ['weather', 'forecast', 'sunny', 'weather', ' rain', 'sunshine',
-                        'umbrella', 'snow', 'hail', 'warm', 'cold', 'brolly', 'boiling'];
+var weather_keywords = ['weather', 'forecast', 'sunny', ' rain', 'sunshine',
+                        'umbrella', 'snow', 'hail', ' warm', 'cold', 'brolly', 'boiling'];
 
 // Local
 var ignored_users = ['galgateweather', 'mennewsdesk', 'metoffice', 'chadWeather', 'myweather_man',
