@@ -96,18 +96,6 @@ exports.updateActionTaken = function(tweet, actionTaken) {
     update.run();
 }
 
-/*exports.sleepUntilAuthComplete = function(callback) {
-    if(!twit.options.access_token_key || !twit.options.access_token_secret) {
-      console.warn("Authentication not complete, waiting 10 seconds before trying again");
-      setTimeout(function() {
-        console.info("Checking to see if authentication is complete");
-        exports.sleepUntilAuthComplete(callback);
-      }, 10000)
-    } else {
-      callback();
-    }
-}*/
-
 exports.sendReply = function(reply_to, message, callback, disable_dummy_tweet) {
     if(typeof disable_dummy_tweet === 'undefined')
         disable_dummy_tweet = false;
