@@ -11,6 +11,8 @@ var QUERY = "";
 var TWEET_CALLBACK = null;
 var DB = null;
 
+var COUNTDOWN_OUTPUT = false;
+
 var TWITTER_ACCOUNT_NAME = "weathermcr";
 
 // --- SQL ---
@@ -387,9 +389,11 @@ function countdown(seconds, callback, message) {
     var countdownCallback;
 
     countdownInterval = setInterval(function(){
-        process.stdout.clearLine();  // clear current text
-        process.stdout.cursorTo(0);  // move cursor to beginning of line
-        process.stdout.write(countdownSecondsLeft-- + " " + message);
+        if(COUNTDOWN_OUTPUT) {
+            process.stdout.clearLine();  // clear current text
+            process.stdout.cursorTo(0);  // move cursor to beginning of line
+            process.stdout.write(countdownSecondsLeft-- + " " + message);
+        }
         
         if(countdownSecondsLeft <= 0) {
             clearInterval(countdownInterval);
