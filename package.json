@@ -17,7 +17,8 @@
     "mocha": "^1.19.0"
   },
   "scripts": {
-    "test": "mocha \"test/*.js\""
+    "test": "mocha --reporter spec \"test/*.js\"",
+    "coverage": "rm -rf lib-cov && jscoverage lib lib-cov && TWITTER_WEATHER_COV=1 mocha -R html-cov > coverage.html && open coverage.html"
   },
   "bugs": {
     "url": "https://github.com/Pezmc/Twitter-Weather-Bot/issues" 

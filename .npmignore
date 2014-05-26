@@ -1,1 +1,5 @@
 .nide
+node_modules
+.*.swp
+*.sqlite
+coverage.html

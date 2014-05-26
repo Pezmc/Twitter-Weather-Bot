@@ -26,6 +26,9 @@ node_modules
 
 .nide
 
+# Project ignore
 tweets.sqlite
-
 ignoredTweets.txt
+lib-cov
+
+coverage.html
