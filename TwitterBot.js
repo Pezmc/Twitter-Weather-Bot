@@ -203,13 +203,13 @@ function updateTweets() {
         selectTweets(params, function(data) {
             if(!data || !data.statuses) {
                 console.warn("No data received from Twitter from search poll");
-                if(data) console.error(data);
+                if(data) console.error(data, params);
             }
             else
             {
                 var count = data.statuses.length;
                 if(count < 1) {
-                    console.warn("No tweets received from Twitter from search poll");
+                    console.info("No tweets received from Twitter from search poll");
                 }
                     
                 for(i=0;i<count;i++) {
@@ -257,7 +257,7 @@ function streamTweets(type, params, dataCallback, reconnectSleepSeconds) {
         
         stream.on('error', function(error) {
             if(error.errorSource) console.error("Twitter "+type+" stream error:", error);
-            else console.error("Other Twitter "+type+" stream error");
+            else console.error("Other Twitter "+type+" stream error", error);
         });
         
         stream.on('end', function(end) {
