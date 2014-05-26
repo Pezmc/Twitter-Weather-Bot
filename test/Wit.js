@@ -1,8 +1,8 @@
-
 var should = require("should");
+var libpath = require("./libpath.js");
 
 describe('Wit', function() {
-  var wit = require('../Wit.js');
+  var wit = require(libpath.getPath() + '/Wit.js');
   describe('+query()', function() {
     it('should return a valid results object', function(done){
       wit.query('what will the weather be today?', function(results) {
