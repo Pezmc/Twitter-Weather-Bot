@@ -23,6 +23,10 @@ var TWITTER_QUERY = 'weather OR sunny OR rain OR umbrella OR snow OR hail OR war
 var sqlite3 = require('sqlite3').verbose();
 var db = new sqlite3.cached.Database('tweets.sqlite');
 
+var pjson = require('./package.json');
+    if(!TWITTER_COFIG.headers) TWITTER_COFIG.headers = {};
+    TWITTER_COFIG.headers['User-Agent'] = 'twitter-weather-bot/'+pjson.version;
+
 var twitterbot = require('./lib/TwitterBot.js');
     twitterbot.config(TWITTER_COFIG, WAIT_SECONDS, db);
     twitterbot.dummy(DUMMY_TWITTER_SEARCH, DUMMY_TWITTER_TWEET);
