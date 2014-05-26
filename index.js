@@ -6,9 +6,9 @@ var DUMMY_TWITTER_MENTION_TWEET = false;
 
 var TWITTER_COFIG = {
     consumer_key: 'dXtdhPDWxm8xVq8Z3otvb1Dv6',
-    consumer_secret: 'fshKYIXBTCQz6HkVJ7DqG00LD1ZsoN4syyNXLbZqrF8nvj1mPU',
-    //access_token_key: '14605923-kYSSvN0y75setOYvv7Dq1jaAOmHFfATHMbku9uYz5',
-    //access_token_secret: '9WX6w2wf6ZFLaFY9O0OJRvgAjsDjOJSnaGrlommjEjo3l'
+    consumer_secret: 'fshKYIXBTCQz6HkVJ7DqG00LD1ZsoN4syyNXLbZqrF8nvj1mPU'
+    //access_token_key: '',
+    //access_token_secret: ''
 }
 var MIN_WIT_CONFIDENCE = 0.75;
 var WEATHER_CONFIG = {
@@ -66,17 +66,6 @@ function stripTwitterURL(tweet) {
 cachedweather.start(30);
 
 twitterbot.start(TWITTER_QUERY, processNewTweet, function() {
-  testMessages = [];
-  //testMessages.push('what will the weather be Manchester next weekend?');
-  /*testMessages.push('I hope it\'s sunny in manchester this weekend!');
-  testMessages.push('will it be warm this weekend?');
-  testMessages.push('is it going to be warm tomorrow?');
-  testMessages.push('is it going to be cold this weekend?');
-  testMessages.push('is there snow forecast?');*/
-  
-  for(i=0; i < testMessages.length; i++) {
-    processNewTweet({text: testMessages[i], id: i, user: {screen_name: 'Pezmc', id: 1}});
-  }
 });
 
 // --- Send a weather tweet every three hours
