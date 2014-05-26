@@ -215,12 +215,13 @@ function updateTweets() {
                 for(i=0;i<count;i++) {
                     var tweet = data.statuses[i];
                     
-                    if(isWeatherTweet(data)) {
+                    if(isWeatherTweet(tweet)) {
                         seenTweet(tweet, TWEET_TYPE.POLLED);
                     } else {
-                        fs.appendFile('ignoredTweets.txt', data.user.screen_name
+                        console.log("Ignored...", tweet.text);
+                        fs.appendFile('ignoredTweets.txt', tweet.user.screen_name
                                        + ":\t"
-                                       + data.text.replace(/(\r\n|\n|\r)/gm," \\\ ")
+                                       + tweet.text.replace(/(\r\n|\n|\r)/gm," \\\ ")
                                        + "\n");
                     }
                     
@@ -286,6 +287,8 @@ var ignored_keywords = ['rt @', '[Manchester Weather] Your Weekend Forecast', 'w
                         'manchester, nh', 'train', '@MetOffice', '@coldplay', 'Cold cave'];
                         
 function isWeatherTweet(tweet) {
+    if(!tweet || !tweet.text) return false;
+    
     return arrayInString(tweet.text, weather_keywords, true)
            && !arrayInString(tweet.user.screen_name, ignored_users)
            && !arrayInString(tweet.text, ignored_keywords)    
