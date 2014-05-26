@@ -2,7 +2,7 @@
 var should = require("should");
 
 describe('Wit', function() {
-  var wit = require('./Wit.js');
+  var wit = require('../Wit.js');
   describe('+query()', function() {
     it('should return a valid results object', function(done){
       wit.query('what will the weather be today?', function(results) {

@@ -1,5 +1,5 @@
 {
-  "name": "twitter-weather",
+  "name": "twitter-weather-bot",
   "description": "Automatically answer people’s questions about the weather",
   "version": "0.1.0",
   "author": "Pez Cuckow",
@@ -13,6 +13,13 @@
     "twitter": "^0.2.9"
   },
   "devDependencies": {
-    "should": "^3.3.2"
+    "should": "^3.3.2",
+    "mocha": "^1.19.0"
+  },
+  "scripts": {
+    "test": "mocha \"test/*.js\""
+  },
+  "bugs": {
+    "url": "https://github.com/Pezmc/Twitter-Weather-Bot/issues" 
   }
 }
