@@ -259,6 +259,9 @@ function streamTweets(type, params, dataCallback, reconnectSleepSeconds) {
         stream.on('error', function(error) {
             if(error.errorSource) console.error("Twitter "+type+" stream error:", error);
             else console.error("Other Twitter "+type+" stream error", error);
+            
+            // To be safe force, else we may be stuck with error but no end firing
+            stream.destroy();
         });
         
         stream.on('end', function(end) {
